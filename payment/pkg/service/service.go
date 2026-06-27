@@ -7,7 +7,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	paymentv1 "github.com/student/shared/pkg/proto/payment/v1"
+	paymentv1 "github.com/krapagen/my_microservices_rocket/shared/pkg/proto/payment/v1"
 )
 
 // server реализует gRPC сервис оплаты

@@ -1,5 +1,4 @@
-// TODO: Поменяй имя модуля github.com/student на своё и обнови все импорты
-module github.com/student/order
+module github.com/krapagen/my_microservices_rocket/order
 
 go 1.26.0
 
@@ -25,8 +24,8 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/student/shared => ../shared
+replace github.com/krapagen/my_microservices_rocket/shared => ../shared
 
-replace github.com/student/inventory => ../inventory
+replace github.com/krapagen/my_microservices_rocket/inventory => ../inventory
 
-replace github.com/student/payment => ../payment
+replace github.com/krapagen/my_microservices_rocket/payment => ../payment
