@@ -134,10 +134,10 @@ func (x *PayOrderRequest) GetPaymentMethod() PaymentMethod {
 
 // Ответ на запрос транзакцией оплаты заказа
 type PayOrderResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	TransactionId string                 `protobuf:"bytes,1,opt,name=transaction_id,json=transactionId,proto3" json:"transaction_id,omitempty"` // UUID транзакции оплаты
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	TransactionUuid string                 `protobuf:"bytes,1,opt,name=transaction_uuid,json=transactionUuid,proto3" json:"transaction_uuid,omitempty"` // UUID транзакции оплаты
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *PayOrderResponse) Reset() {
@@ -170,9 +170,9 @@ func (*PayOrderResponse) Descriptor() ([]byte, []int) {
 	return file_payment_v1_payment_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *PayOrderResponse) GetTransactionId() string {
+func (x *PayOrderResponse) GetTransactionUuid() string {
 	if x != nil {
-		return x.TransactionId
+		return x.TransactionUuid
 	}
 	return ""
 }
@@ -186,9 +186,9 @@ const file_payment_v1_payment_proto_rawDesc = "" +
 	"\x0fPayOrderRequest\x12\x1d\n" +
 	"\n" +
 	"order_uuid\x18\x01 \x01(\tR\torderUuid\x12@\n" +
-	"\x0epayment_method\x18\x02 \x01(\x0e2\x19.payment.v1.PaymentMethodR\rpaymentMethod\"9\n" +
-	"\x10PayOrderResponse\x12%\n" +
-	"\x0etransaction_id\x18\x01 \x01(\tR\rtransactionId*\xa3\x01\n" +
+	"\x0epayment_method\x18\x02 \x01(\x0e2\x19.payment.v1.PaymentMethodR\rpaymentMethod\"=\n" +
+	"\x10PayOrderResponse\x12)\n" +
+	"\x10transaction_uuid\x18\x01 \x01(\tR\x0ftransactionUuid*\xa3\x01\n" +
 	"\rPaymentMethod\x12\x1e\n" +
 	"\x1aPAYMENT_METHOD_UNSPECIFIED\x10\x00\x12\x17\n" +
 	"\x13PAYMENT_METHOD_CARD\x10\x01\x12\x16\n" +
