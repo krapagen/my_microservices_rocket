@@ -1,30 +1,55 @@
 package main
 
 import (
+	"context"
 	"log/slog"
 	"net"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/reflection"
 
-	paymentService "github.com/student/payment/pkg/service"
-	paymentv1 "github.com/student/shared/pkg/proto/payment/v1"
+	paymentService "github.com/krapagen/my_microservices_rocket/payment/pkg/service"
+	paymentv1 "github.com/krapagen/my_microservices_rocket/shared/pkg/proto/payment/v1"
 )
 
-const grpcAddress = ":50052"
+const (
+	grpcAddress = ":50052"
+
+	// gRPC keepalive параметры
+	grpcMaxConnectionIdle     = 15 * time.Minute // Закрыть idle-соединения (нет активных RPC)
+	grpcMaxConnectionAge      = 30 * time.Minute // Принудительная ротация для балансировки
+	grpcMaxConnectionAgeGrace = 5 * time.Second  // Время на завершение активных RPC
+	grpcKeepaliveTime         = 5 * time.Minute  // Интервал ping'ов для обнаружения мёртвых соединений
+	grpcKeepaliveTimeout      = 1 * time.Second  // Таймаут ожидания pong
+	grpcMinPingInterval       = 5 * time.Minute  // Минимальный интервал ping'ов от клиента (защита от DoS)
+)
 
 func main() {
-	lis, err := net.Listen("tcp", grpcAddress)
+	lc := net.ListenConfig{}
+	lis, err := lc.Listen(context.Background(), "tcp", grpcAddress)
 	if err != nil {
 		slog.Error("не удалось создать listener", "error", err)
 		os.Exit(1)
 	}
 
-	// TODO: Настроить gRPC сервер с параметрами keepalive
-	// Подумайте, какие параметры стоит задать для production-ready сервера
-	// См. examples/week_1/GRPC_CONNECTIONS.md
-	grpcServer := grpc.NewServer()
+	grpcServer := grpc.NewServer(
+		grpc.KeepaliveParams(keepalive.ServerParameters{
+			MaxConnectionIdle:     grpcMaxConnectionIdle,
+			MaxConnectionAge:      grpcMaxConnectionAge,
+			MaxConnectionAgeGrace: grpcMaxConnectionAgeGrace,
+			Time:                  grpcKeepaliveTime,
+			Timeout:               grpcKeepaliveTimeout,
+		}),
+		grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy{
+			MinTime:             grpcMinPingInterval,
+			PermitWithoutStream: true, // Разрешить "тёплые" соединения без активных RPC
+		}),
+	)
 	paymentv1.RegisterPaymentServiceServer(grpcServer, paymentService.NewServer())
 
 	// Включаем reflection для postman/grpcurl
@@ -32,16 +57,20 @@ func main() {
 
 	slog.Info("запуск PaymentService", "адрес", grpcAddress)
 
-	// TODO: Реализовать graceful shutdown
-	// При получении сигнала SIGINT/SIGTERM сервер должен:
-	// 1. Перестать принимать новые соединения
-	// 2. Дождаться завершения текущих запросов
-	// 3. Корректно завершить работу
-	// Подсказка: используйте signal.NotifyContext и grpcServer.GracefulStop()
+	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer cancel()
 
-	err = grpcServer.Serve(lis)
-	if err != nil {
-		slog.Error("ошибка запуска сервера", "error", err)
-		os.Exit(1)
-	}
+	go func() {
+		slog.Info("gRPC PaymentService запущен", "address", grpcAddress)
+		if serveErr := grpcServer.Serve(lis); serveErr != nil {
+			slog.Error("ошибка запуска сервера", "error", serveErr)
+			cancel() // будим main, чтобы не висеть бесконечно
+		}
+	}()
+
+	// Ждём сигнал от ОС или падение сервера
+	<-ctx.Done()
+	slog.Info("Остановка gRPC сервера")
+	grpcServer.GracefulStop()
+	slog.Info("Сервер остановлен")
 }
