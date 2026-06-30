@@ -50,7 +50,8 @@ func (s *Server) PayOrder(
 
 	log.InfoContext(ctx, "Сгенерирован transaction_uuid")
 	// 5. Вывести в лог: "оплата прошла успешно, order_uuid: X, transaction_uuid: Y"
-	log.InfoContext(ctx, "Проверка входных данных прошла успешно, оплата прошла успешно",
+	log.InfoContext(
+		ctx, "Проверка входных данных прошла успешно, оплата прошла успешно",
 		"order_uuid", req.GetOrderUuid(),
 		"payment_method", req.GetPaymentMethod(),
 	)

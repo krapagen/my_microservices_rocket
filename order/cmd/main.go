@@ -37,7 +37,8 @@ const (
 
 func main() {
 	// Создать gRPC соединение с InventoryService
-	inventoryConn, err := grpc.NewClient(inventoryServiceAddress,
+	inventoryConn, err := grpc.NewClient(
+		inventoryServiceAddress,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithKeepaliveParams(keepalive.ClientParameters{
 			Time:                grpcKeepaliveTime,
@@ -57,7 +58,8 @@ func main() {
 	}()
 
 	// Создать gRPC соединение с PaymentService
-	paymentConn, err := grpc.NewClient(paymentServiceAddress,
+	paymentConn, err := grpc.NewClient(
+		paymentServiceAddress,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithKeepaliveParams(keepalive.ClientParameters{
 			Time:                grpcKeepaliveTime,
