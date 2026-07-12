@@ -13,8 +13,7 @@ import (
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/reflection"
 
-	inventoryService "github.com/krapagen/my_microservices_rocket/inventory/pkg/service"
-	inventoryv1 "github.com/krapagen/my_microservices_rocket/shared/pkg/proto/inventory/v1"
+	"github.com/krapagen/my_microservices_rocket/inventory/pkg/app"
 )
 
 const (
@@ -38,7 +37,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	grpcServer := grpc.NewServer(
+	options := make([]grpc.ServerOption, 0, 2+len(app.Interceptors()))
+	options = append(options,
 		grpc.KeepaliveParams(keepalive.ServerParameters{
 			MaxConnectionIdle:     grpcMaxConnectionIdle,
 			MaxConnectionAge:      grpcMaxConnectionAge,
@@ -51,7 +51,11 @@ func main() {
 			PermitWithoutStream: true, // Разрешить "тёплые" соединения без активных RPC
 		}),
 	)
-	inventoryv1.RegisterInventoryServiceServer(grpcServer, inventoryService.NewServer())
+	options = append(options, app.Interceptors()...)
+
+	grpcServer := grpc.NewServer(options...)
+
+	app.RegisterServices(grpcServer)
 
 	// Включаем reflection для postman/grpcurl
 	reflection.Register(grpcServer)
