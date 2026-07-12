@@ -13,7 +13,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/keepalive"
 
-	orderHandler "github.com/krapagen/my_microservices_rocket/order/pkg/handler"
+	"github.com/krapagen/my_microservices_rocket/order/pkg/app"
 	inventoryv1 "github.com/krapagen/my_microservices_rocket/shared/pkg/proto/inventory/v1"
 	paymentv1 "github.com/krapagen/my_microservices_rocket/shared/pkg/proto/payment/v1"
 )
@@ -78,17 +78,13 @@ func main() {
 		}
 	}()
 
-	// Создаём хранилище и обработчик
-	store := orderHandler.NewOrderStore()
-	h := orderHandler.NewHandler(
+	// Создаём HTTP обработчик с новой архитектурой
+	orderHandler, err := app.NewHTTPHandler(
 		inventoryv1.NewInventoryServiceClient(inventoryConn),
 		paymentv1.NewPaymentServiceClient(paymentConn),
-		store,
 	)
-	// Создать OpenAPI сервер
-	orderServer, err := orderHandler.SetupServer(h)
 	if err != nil {
-		slog.Error("ошибка создания сервера OpenAPI", "error", err)
+		slog.Error("ошибка создания зависимостей приложения", "error", err)
 		return
 	}
 
@@ -96,7 +92,7 @@ func main() {
 	// Подробное описание всех параметров: см. week_1/HTTP_SERVER.md
 	httpServer := &http.Server{
 		Addr:              httpAddress,
-		Handler:           orderServer,
+		Handler:           orderHandler,
 		ReadHeaderTimeout: httpReadHeaderTimeout, // Защита от Slowloris атаки
 		ReadTimeout:       httpReadTimeout,       // Лимит на чтение всего запроса
 		WriteTimeout:      httpWriteTimeout,      // Лимит на запись ответа

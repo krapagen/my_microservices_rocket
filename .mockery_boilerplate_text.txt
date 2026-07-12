@@ -1,0 +1,2 @@
+// Code generated for student service
+// KraPaGen© Student 2026.

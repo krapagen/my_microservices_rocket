@@ -9,6 +9,8 @@ require (
 )
 
 require (
+	github.com/brianvoe/gofakeit/v7 v7.15.0 // indirect
+	github.com/stretchr/testify v1.11.1 // indirect
 	go.opentelemetry.io/otel v1.42.0 // indirect
 	go.opentelemetry.io/otel/sdk/metric v1.42.0 // indirect
 	golang.org/x/net v0.51.0 // indirect
