@@ -5,10 +5,10 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/krapagen/my_microservices_rocket/order/internal/model"
-	"github.com/krapagen/my_microservices_rocket/order/internal/service/input"
 	"github.com/stretchr/testify/suite"
 
+	"github.com/krapagen/my_microservices_rocket/order/internal/model"
+	"github.com/krapagen/my_microservices_rocket/order/internal/service/input"
 	"github.com/krapagen/my_microservices_rocket/order/internal/service/order"
 	"github.com/krapagen/my_microservices_rocket/order/internal/service/order/mocks"
 )

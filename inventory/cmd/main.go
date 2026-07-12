@@ -38,7 +38,8 @@ func main() {
 	}
 
 	options := make([]grpc.ServerOption, 0, 2+len(app.Interceptors()))
-	options = append(options,
+	options = append(
+		options,
 		grpc.KeepaliveParams(keepalive.ServerParameters{
 			MaxConnectionIdle:     grpcMaxConnectionIdle,
 			MaxConnectionAge:      grpcMaxConnectionAge,

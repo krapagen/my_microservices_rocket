@@ -5,9 +5,10 @@ import (
 	"net/http"
 	"net/http/httptest"
 
-	errs "github.com/krapagen/my_microservices_rocket/order/internal/errors"
-	"github.com/krapagen/my_microservices_rocket/order/internal/api/order/v1"
 	"github.com/ogen-go/ogen/ogenerrors"
+
+	"github.com/krapagen/my_microservices_rocket/order/internal/api/order/v1"
+	errs "github.com/krapagen/my_microservices_rocket/order/internal/errors"
 )
 
 type failWriter struct {
@@ -104,7 +105,7 @@ func (s *ServiceSuite) TestErrorHandler() {
 	for _, tt := range tests {
 		s.Run(tt.name, func() {
 			rec := httptest.NewRecorder()
-			req := httptest.NewRequest("GET", "/test", nil)
+			req := httptest.NewRequest(http.MethodGet, "/test", nil)
 
 			v1.ErrorHandler(s.ctx, rec, req, tt.inputErr)
 
@@ -117,7 +118,7 @@ func (s *ServiceSuite) TestErrorHandler() {
 
 func (s *ServiceSuite) TestErrorHandler_EncodeError() {
 	fw := &failWriter{}
-	req := httptest.NewRequest("GET", "/test", nil)
+	req := httptest.NewRequest(http.MethodGet, "/test", nil)
 
 	v1.ErrorHandler(s.ctx, fw, req, errs.ErrOrderNotFound)
 

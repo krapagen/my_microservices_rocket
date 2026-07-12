@@ -3,9 +3,10 @@ package tests
 import (
 	"github.com/brianvoe/gofakeit/v7"
 	"github.com/google/uuid"
+	"github.com/stretchr/testify/mock"
+
 	errs "github.com/krapagen/my_microservices_rocket/order/internal/errors"
 	"github.com/krapagen/my_microservices_rocket/order/internal/model"
-	"github.com/stretchr/testify/mock"
 )
 
 func (s *ServiceSuite) TestCancel_Success() {

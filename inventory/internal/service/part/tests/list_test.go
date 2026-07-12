@@ -3,9 +3,9 @@ package tests
 import (
 	"github.com/brianvoe/gofakeit/v7"
 	"github.com/google/uuid"
-	errs "github.com/krapagen/my_microservices_rocket/inventory/internal/errors"
 	"github.com/stretchr/testify/assert"
 
+	errs "github.com/krapagen/my_microservices_rocket/inventory/internal/errors"
 	"github.com/krapagen/my_microservices_rocket/inventory/internal/model"
 	"github.com/krapagen/my_microservices_rocket/inventory/internal/service/input"
 )
@@ -99,7 +99,7 @@ func (s *ServiceSuite) TestList_WithMultipleUUIDs() {
 	s.Equal(filter.UUIDs[0], result[0].UUID) // uuid3 (первый в запросе)
 	s.Equal(filter.UUIDs[1], result[1].UUID) // uuid1 (второй в запросе)
 	s.Equal(filter.UUIDs[2], result[2].UUID) // uuid2 (третий в запросе)
-	//assert.Equal(s.T(), expected, result)
+	// assert.Equal(s.T(), expected, result)
 }
 
 func (s *ServiceSuite) TestList_Sorted() {
@@ -148,7 +148,7 @@ func (s *ServiceSuite) TestList_Sorted() {
 	s.Equal(uuid2, result[0].UUID) // uuid3 (первый в запросе)
 	s.Equal(uuid1, result[1].UUID) // uuid1 (второй в запросе)
 	s.Equal(uuid3, result[2].UUID) // uuid2 (третий в запросе)
-	//assert.Equal(s.T(), expected, result)
+	// assert.Equal(s.T(), expected, result)
 }
 
 func (s *ServiceSuite) TestList_EmptyFilter() {

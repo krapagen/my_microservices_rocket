@@ -32,9 +32,7 @@ func (s *ServiceSuite) TestGet_Success() {
 }
 
 func (s *ServiceSuite) TestGet_NotFound() {
-	var (
-		partUUID = uuid.New()
-	)
+	partUUID := uuid.New()
 
 	s.partRepository.EXPECT().Get(s.ctx, partUUID).Return(model.Part{}, errs.ErrPartNotFound)
 

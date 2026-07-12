@@ -2,6 +2,7 @@ package tests
 
 import (
 	"github.com/google/uuid"
+
 	errs "github.com/krapagen/my_microservices_rocket/inventory/internal/errors"
 	"github.com/krapagen/my_microservices_rocket/inventory/internal/model"
 	"github.com/krapagen/my_microservices_rocket/inventory/internal/service/input"

@@ -5,6 +5,7 @@ import (
 
 	"github.com/brianvoe/gofakeit/v7"
 	"github.com/google/uuid"
+
 	errs "github.com/krapagen/my_microservices_rocket/order/internal/errors"
 	"github.com/krapagen/my_microservices_rocket/order/internal/model"
 )
@@ -34,11 +35,9 @@ func (s *ServiceSuite) TestGet_Success() {
 	s.Equal(testOrder.Status, result.Status)
 	s.Equal(testOrder.Items, result.Items)
 	s.Equal(testOrder.CreatedAt, result.CreatedAt)
-
 }
 
 func (s *ServiceSuite) TestGet_NotFound() {
-
 	orderUUID := uuid.New()
 
 	s.orderRepository.EXPECT().Get(s.ctx, orderUUID).Return(model.Order{}, errs.ErrOrderNotFound)

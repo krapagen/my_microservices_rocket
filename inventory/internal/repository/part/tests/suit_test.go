@@ -5,11 +5,11 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/krapagen/my_microservices_rocket/inventory/internal/model"
-	"github.com/krapagen/my_microservices_rocket/inventory/internal/service/input"
 	"github.com/stretchr/testify/suite"
 
+	"github.com/krapagen/my_microservices_rocket/inventory/internal/model"
 	"github.com/krapagen/my_microservices_rocket/inventory/internal/repository/part"
+	"github.com/krapagen/my_microservices_rocket/inventory/internal/service/input"
 )
 
 type Repository interface {

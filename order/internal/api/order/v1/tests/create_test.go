@@ -5,6 +5,7 @@ import (
 
 	"github.com/brianvoe/gofakeit/v7"
 	"github.com/google/uuid"
+
 	errs "github.com/krapagen/my_microservices_rocket/order/internal/errors"
 	"github.com/krapagen/my_microservices_rocket/order/internal/model"
 	"github.com/krapagen/my_microservices_rocket/order/internal/service/input"

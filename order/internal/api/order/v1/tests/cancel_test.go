@@ -3,6 +3,7 @@ package tests
 import (
 	"github.com/brianvoe/gofakeit/v7"
 	"github.com/google/uuid"
+
 	errs "github.com/krapagen/my_microservices_rocket/order/internal/errors"
 	orderv1 "github.com/krapagen/my_microservices_rocket/shared/pkg/openapi/order/v1"
 )
