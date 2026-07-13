@@ -2,11 +2,25 @@ name: "Test Unit"
 
 on:
   workflow_call:
+    inputs:
+      gist-id:
+        description: "Gist ID for coverage badge"
+        required: false
+        type: string
+        default: "52a65d3bc94b4dfc010de299283c7f78"
+    secrets:
+      GIST_SECRET:
+        description: "GitHub token with gist scope for the coverage badge"
+        required: false
 
 jobs:
   test-unit:
     name: "Unit tests with coverage"
     runs-on: ubuntu-24.04
+    env:
+      COVERAGE_DIR: coverage
+      COVERAGE_FILE: coverage.out
+      GIST_ID: ${{ inputs.gist-id }}
     steps:
       - uses: actions/checkout@v6.0.2
 
@@ -32,10 +46,24 @@ jobs:
       - name: Publish coverage to job summary
         if: always()
         run: |
+          coverage_output=$(go tool cover -func=${COVERAGE_DIR}/${COVERAGE_FILE})
+          total_coverage=$(echo "$coverage_output" | tail -1 | awk '{print $NF}')
+          echo "TOTAL_COVERAGE=$total_coverage" >> "$GITHUB_ENV"
           {
             echo "## 📊 Coverage report"
             echo ""
             echo '```'
-            go tool cover -func=coverage/coverage.out
+            echo "$coverage_output"
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: 🏷️ Update Gist Badge
+        if: secrets.GIST_SECRET != ''
+        uses: schneegans/dynamic-badges-action@v1.7.0
+        with:
+          auth: ${{ secrets.GIST_SECRET }}
+          gistID: ${{ env.GIST_ID }}
+          filename: coverage.json
+          label: Coverage
+          message: ${{ env.TOTAL_COVERAGE }}
+          color: green
