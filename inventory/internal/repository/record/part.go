@@ -2,24 +2,16 @@ package record
 
 import (
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type Part struct {
-	UUID          string
-	Name          string
-	Description   string
-	Price         int64
-	PartType      PartType
-	StockQuantity int64
-	CreatedAt     time.Time
+	UUID          uuid.UUID `db:"uuid"`
+	Name          string    `db:"name"`
+	Description   string    `db:"description"`
+	Price         int64     `db:"price"`
+	PartType      string    `db:"part_type"`
+	StockQuantity int64     `db:"stock_quantity"`
+	CreatedAt     time.Time `db:"created_at"`
 }
-
-type PartType int32
-
-const (
-	PartType_PART_TYPE_UNSPECIFIED PartType = 0
-	PartType_PART_TYPE_HULL        PartType = 1
-	PartType_PART_TYPE_ENGINE      PartType = 2
-	PartType_PART_TYPE_SHIELD      PartType = 3
-	PartType_PART_TYPE_WEAPON      PartType = 4
-)

@@ -112,7 +112,7 @@ func (s *ServiceSuite) TestList_Sorted() {
 		}
 		expected = []model.Part{
 			{
-				UUID:          uuid3,
+				UUID:          uuid1,
 				Name:          "C",
 				Description:   gofakeit.LoremIpsumSentence(5),
 				Price:         int64(gofakeit.Price(100, 100000)),
@@ -120,7 +120,7 @@ func (s *ServiceSuite) TestList_Sorted() {
 				StockQuantity: int64(gofakeit.Number(1, 100)),
 			},
 			{
-				UUID:          uuid1,
+				UUID:          uuid2,
 				Name:          "B",
 				Description:   gofakeit.LoremIpsumSentence(5),
 				Price:         int64(gofakeit.Price(100, 100000)),
@@ -128,7 +128,7 @@ func (s *ServiceSuite) TestList_Sorted() {
 				StockQuantity: int64(gofakeit.Number(1, 100)),
 			},
 			{
-				UUID:          uuid2,
+				UUID:          uuid3,
 				Name:          "A",
 				Description:   gofakeit.LoremIpsumSentence(5),
 				Price:         int64(gofakeit.Price(100, 100000)),
@@ -145,9 +145,9 @@ func (s *ServiceSuite) TestList_Sorted() {
 	s.NoError(err)
 	s.Len(result, 3)
 
-	s.Equal(uuid2, result[0].UUID) // uuid3 (первый в запросе)
-	s.Equal(uuid1, result[1].UUID) // uuid1 (второй в запросе)
-	s.Equal(uuid3, result[2].UUID) // uuid2 (третий в запросе)
+	s.Equal(uuid1, result[0].UUID) // uuid1 (первый в запросе)
+	s.Equal(uuid2, result[1].UUID) // uuid2 (второй в запросе)
+	s.Equal(uuid3, result[2].UUID) // uuid3 (третий в запросе)
 	// assert.Equal(s.T(), expected, result)
 }
 

@@ -1,6 +1,7 @@
 package app
 
 import (
+	"github.com/jackc/pgx/v5/pgxpool"
 	"google.golang.org/grpc"
 
 	inventoryapi "github.com/krapagen/my_microservices_rocket/inventory/internal/api/inventory/v1"
@@ -18,8 +19,8 @@ func Interceptors() []grpc.ServerOption {
 }
 
 // RegisterServices регистрирует сервисы на gRPC сервере
-func RegisterServices(grpcServer *grpc.Server) {
-	repo := repository.NewRepository()
+func RegisterServices(grpcServer *grpc.Server, pool *pgxpool.Pool) {
+	repo := repository.New(pool)
 	svc := service.New(repo)
 	api := inventoryapi.New(svc)
 	inventoryv1.RegisterInventoryServiceServer(grpcServer, api)

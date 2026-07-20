@@ -5,6 +5,7 @@ import "errors"
 
 var (
 	// Ошибки заказов
+	ErrOrderItemNotFound    = errors.New("деталь заказа не найдена")
 	ErrOrderNotFound        = errors.New("заказ не найден")
 	ErrOrderAlreadyPaid     = errors.New("заказ уже оплачен")
 	ErrOrderCancelled       = errors.New("заказ отменён")

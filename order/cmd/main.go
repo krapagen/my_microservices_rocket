@@ -5,10 +5,15 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
+	trmpgx "github.com/avito-tech/go-transaction-manager/drivers/pgxv5/v2"
+	"github.com/avito-tech/go-transaction-manager/trm/v2/manager"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/joho/godotenv"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/keepalive"
@@ -36,6 +41,48 @@ const (
 )
 
 func main() {
+	// Контекст, который отменяется по SIGINT/SIGTERM или при падении сервера
+	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer cancel()
+
+	// Загружаем переменные окружения из .env
+	err := godotenv.Load("order.env")
+	if err != nil {
+		slog.Error("ошибка загрузки переменных окружения из order.env", "error", err)
+		return
+	}
+
+	// Подключаемся к PostgreSQL
+	dbURI := os.Getenv("DB_URI")
+	if dbURI == "" {
+		slog.Error("переменная окружения DB_URI не установлена")
+		return
+	}
+
+	// DSN берём из order.env (пока хардкодим в main.go)
+	pool, err := pgxpool.New(ctx, dbURI)
+	if err != nil {
+		slog.Error("ошибка подключения к БД", "error", err)
+		return
+	}
+	defer pool.Close()
+
+	// Проверяем соединение
+	err = pool.Ping(ctx)
+	if err != nil {
+		slog.Error("проверка соединения с БД", "error", err)
+		return
+	}
+
+	slog.Info("подключение к PostgreSQL установлено")
+
+	// 2. Создаём Transaction Manager
+	txManager, err := manager.New(trmpgx.NewDefaultFactory(pool))
+	if err != nil {
+		slog.Error("ошибка создания Transaction Manager", "error", err)
+		return
+	}
+
 	// Создать gRPC соединение с InventoryService
 	inventoryConn, err := grpc.NewClient(
 		inventoryServiceAddress,
@@ -80,6 +127,8 @@ func main() {
 
 	// Создаём HTTP обработчик с новой архитектурой
 	orderHandler, err := app.NewHTTPHandler(
+		pool,
+		txManager,
 		inventoryv1.NewInventoryServiceClient(inventoryConn),
 		paymentv1.NewPaymentServiceClient(paymentConn),
 	)
@@ -98,10 +147,6 @@ func main() {
 		WriteTimeout:      httpWriteTimeout,      // Лимит на запись ответа
 		IdleTimeout:       httpIdleTimeout,       // Таймаут keep-alive соединений
 	}
-
-	// Контекст, который отменяется по SIGINT/SIGTERM или при падении сервера
-	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-	defer cancel()
 
 	// Запускаем HTTP сервер в горутине
 	go func() {
