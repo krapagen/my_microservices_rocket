@@ -4,6 +4,8 @@ package app
 import (
 	"net/http"
 
+	"github.com/jackc/pgx/v5/pgxpool"
+
 	orderv1API "github.com/krapagen/my_microservices_rocket/order/internal/api/order/v1"
 	inventoryClient "github.com/krapagen/my_microservices_rocket/order/internal/client/grpc/inventory/v1"
 	paymentClient "github.com/krapagen/my_microservices_rocket/order/internal/client/grpc/payment/v1"
@@ -15,9 +17,9 @@ import (
 )
 
 // NewHTTPHandler creates HTTP handler from gRPC clients (for tests)
-func NewHTTPHandler(inventoryGRPCClient inventoryv1.InventoryServiceClient, paymentGRPCClient paymentv1.PaymentServiceClient) (http.Handler, error) {
+func NewHTTPHandler(pool *pgxpool.Pool, txManager orderRepository.TxManager, inventoryGRPCClient inventoryv1.InventoryServiceClient, paymentGRPCClient paymentv1.PaymentServiceClient) (http.Handler, error) {
 	// Repository layer
-	orderRepo := orderRepository.New()
+	orderRepo := orderRepository.New(pool, txManager)
 
 	// Create client adapters
 	invClient := inventoryClient.New(inventoryGRPCClient)

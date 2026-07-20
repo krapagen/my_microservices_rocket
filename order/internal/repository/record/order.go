@@ -2,45 +2,22 @@ package record
 
 import (
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type Order struct {
-	OrderUUID       string
-	Items           []OrderItem
-	TransactionUUID *string
-	PaymentMethod   *PaymentMethod
-	Status          OrderStatus
-	CreatedAt       time.Time
+	UUID            uuid.UUID  `db:"uuid"`
+	Status          string     `db:"status"`
+	TransactionUUID *uuid.UUID `db:"transaction_uuid"` // nullable → указатель
+	PaymentMethod   *string    `db:"payment_method"`
+	CreatedAt       time.Time  `db:"created_at"`
+	UpdatedAt       *time.Time `db:"updated_at"`
 }
+
 type OrderItem struct {
-	PartUUID string
-	PartType PartType
-	Price    int64
+	OrderUUID uuid.UUID `db:"order_uuid"`
+	PartUUID  uuid.UUID `db:"part_uuid"`
+	PartType  string    `db:"part_type"`
+	Price     int64     `db:"price"`
 }
-
-type PartType string
-
-const (
-	PartTypeHull   PartType = "HULL"
-	PartTypeEngine PartType = "ENGINE"
-	PartTypeShield PartType = "SHIELD"
-	PartTypeWeapon PartType = "WEAPON"
-)
-
-type OrderStatus string
-
-const (
-	OrderStatusPendingPayment OrderStatus = "PENDING_PAYMENT"
-	OrderStatusPaid           OrderStatus = "PAID"
-	OrderStatusCancelled      OrderStatus = "CANCELLED"
-)
-
-type PaymentMethod string
-
-const (
-	PaymentMethodUnspecified   PaymentMethod = "UNSPECIFIED"
-	PaymentMethodCard          PaymentMethod = "CARD"
-	PaymentMethodSBP           PaymentMethod = "SBP"
-	PaymentMethodCreditCard    PaymentMethod = "CREDIT_CARD"
-	PaymentMethodInvestorMoney PaymentMethod = "INVESTOR_MONEY"
-)

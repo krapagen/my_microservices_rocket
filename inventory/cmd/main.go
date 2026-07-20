@@ -9,6 +9,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/joho/godotenv"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/reflection"
@@ -30,11 +32,41 @@ const (
 )
 
 func main() {
+	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer cancel()
+
+	err := godotenv.Load("grpc.env")
+	if err != nil {
+		slog.Error("ошибка загрузки переменных окружения из grpc.env", "error", err)
+		return
+	}
+
+	dbURI := os.Getenv("DB_URI")
+	if dbURI == "" {
+		slog.Error("переменная окружения DB_URI не установлена")
+		return
+	}
+
+	pool, err := pgxpool.New(ctx, dbURI)
+	if err != nil {
+		slog.Error("ошибка подключения к БД", "error", err)
+		return
+	}
+	defer pool.Close()
+
+	err = pool.Ping(ctx)
+	if err != nil {
+		slog.Error("проверка соединения с БД", "error", err)
+		return
+	}
+
+	slog.Info("подключение к PostgreSQL установлено")
+
 	lc := net.ListenConfig{}
 	lis, err := lc.Listen(context.Background(), "tcp", grpcAddress)
 	if err != nil {
 		slog.Error("не удалось создать listener", "error", err)
-		os.Exit(1)
+		return
 	}
 
 	options := make([]grpc.ServerOption, 0, 2+len(app.Interceptors()))
@@ -56,15 +88,11 @@ func main() {
 
 	grpcServer := grpc.NewServer(options...)
 
-	app.RegisterServices(grpcServer)
+	app.RegisterServices(grpcServer, pool)
 
-	// Включаем reflection для postman/grpcurl
 	reflection.Register(grpcServer)
 
 	slog.Info("запуск InventoryService", "адрес", grpcAddress)
-
-	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-	defer cancel()
 
 	go func() {
 		slog.Info("gRPC InventoryService запущен", "address", grpcAddress)
@@ -74,7 +102,6 @@ func main() {
 		}
 	}()
 
-	// Ждём сигнал от ОС или падение сервера
 	<-ctx.Done()
 	slog.Info("Остановка gRPC сервера")
 	grpcServer.GracefulStop()

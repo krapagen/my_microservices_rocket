@@ -40,6 +40,7 @@ func mapError(err error) (int, string) {
 
 	// 404 Not Found
 	case errors.Is(err, errs.ErrOrderNotFound),
+		errors.Is(err, errs.ErrOrderItemNotFound),
 		errors.Is(err, errs.ErrPartNotFound):
 		return http.StatusNotFound, err.Error()
 
