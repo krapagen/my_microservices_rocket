@@ -34,3 +34,19 @@ func PartsToModel(parts []*inventoryv1.Part) []model.Part {
 	}
 	return res
 }
+
+func ShipSlotsToProto(slots model.ShipSlots) *inventoryv1.ValidateCompatibilityRequest {
+	optional := func(u *uuid.UUID) string {
+		if u == nil {
+			return ""
+		}
+		return u.String()
+	}
+
+	return &inventoryv1.ValidateCompatibilityRequest{
+		HullUuid:   slots.HullUUID.String(),
+		EngineUuid: slots.EngineUUID.String(),
+		ShieldUuid: optional(slots.ShieldUUID),
+		WeaponUuid: optional(slots.WeaponUUID),
+	}
+}

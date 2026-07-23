@@ -4,6 +4,8 @@ import (
 	"github.com/brianvoe/gofakeit/v7"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/mock"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	errs "github.com/krapagen/my_microservices_rocket/order/internal/errors"
 	"github.com/krapagen/my_microservices_rocket/order/internal/model"
@@ -46,6 +48,8 @@ func (s *ServiceSuite) TestCreate_Success() {
 		Status: model.OrderStatusPendingPayment,
 	}
 
+	s.orderInventoryClient.EXPECT().ValidateCompatibility(mock.Anything, mock.Anything).Return(nil)
+	s.orderInventoryClient.EXPECT().ReserveParts(s.ctx, partUUIDs).Return(nil)
 	s.orderInventoryClient.EXPECT().ListParts(s.ctx, partUUIDs).Return(modelParts, nil)
 	s.orderRepository.EXPECT().Create(s.ctx, mock.MatchedBy(func(order model.Order) bool {
 		return order.UUID != uuid.Nil &&
@@ -83,7 +87,10 @@ func (s *ServiceSuite) TestCreate_InventoryError() {
 	partUUIDs := []uuid.UUID{partID1, partID2}
 	invErr := gofakeit.Error()
 
+	s.orderInventoryClient.EXPECT().ValidateCompatibility(mock.Anything, mock.Anything).Return(nil)
+	s.orderInventoryClient.EXPECT().ReserveParts(s.ctx, partUUIDs).Return(nil)
 	s.orderInventoryClient.EXPECT().ListParts(s.ctx, partUUIDs).Return(nil, invErr)
+	s.orderInventoryClient.EXPECT().ReleaseParts(s.ctx, partUUIDs).Return(nil)
 
 	result, err := s.service.Create(s.ctx, input.CreateOrderInput{
 		HullUUID:   partID1,
@@ -98,24 +105,10 @@ func (s *ServiceSuite) TestCreate_OutOfStock() {
 	partID1 := uuid.New()
 	partID2 := uuid.New()
 	partUUIDs := []uuid.UUID{partID1, partID2}
-	modelParts := []model.Part{
-		{
-			UUID:          partID1,
-			Name:          "Hull Part",
-			PartType:      model.PartTypeHull,
-			Price:         1000,
-			StockQuantity: 0,
-		},
-		{
-			UUID:          partID2,
-			Name:          "Engine Part",
-			PartType:      model.PartTypeEngine,
-			Price:         2000,
-			StockQuantity: 5,
-		},
-	}
+	outOfStockErr := status.Error(codes.ResourceExhausted, "out of stock")
 
-	s.orderInventoryClient.EXPECT().ListParts(s.ctx, partUUIDs).Return(modelParts, nil)
+	s.orderInventoryClient.EXPECT().ValidateCompatibility(mock.Anything, mock.Anything).Return(nil)
+	s.orderInventoryClient.EXPECT().ReserveParts(s.ctx, partUUIDs).Return(outOfStockErr)
 
 	result, err := s.service.Create(s.ctx, input.CreateOrderInput{
 		HullUUID:   partID1,
@@ -131,14 +124,17 @@ func (s *ServiceSuite) TestCreate_EmptyParts() {
 	partID2 := uuid.New()
 	partUUIDs := []uuid.UUID{partID1, partID2}
 
+	s.orderInventoryClient.EXPECT().ValidateCompatibility(mock.Anything, mock.Anything).Return(nil)
+	s.orderInventoryClient.EXPECT().ReserveParts(s.ctx, partUUIDs).Return(nil)
 	s.orderInventoryClient.EXPECT().ListParts(s.ctx, partUUIDs).Return([]model.Part{}, nil)
+	s.orderInventoryClient.EXPECT().ReleaseParts(s.ctx, partUUIDs).Return(nil)
 
 	result, err := s.service.Create(s.ctx, input.CreateOrderInput{
 		HullUUID:   partID1,
 		EngineUUID: partID2,
 	})
 	s.Error(err)
-	s.ErrorIs(err, errs.ErrMissingRequiredParts)
+	s.ErrorIs(err, errs.ErrPartNotFound)
 	s.Equal(model.Order{}, result)
 }
 
@@ -179,6 +175,8 @@ func (s *ServiceSuite) TestCreate_WithOptionalParts() {
 		},
 	}
 
+	s.orderInventoryClient.EXPECT().ValidateCompatibility(mock.Anything, mock.Anything).Return(nil)
+	s.orderInventoryClient.EXPECT().ReserveParts(s.ctx, partUUIDs).Return(nil)
 	s.orderInventoryClient.EXPECT().ListParts(s.ctx, partUUIDs).Return(modelParts, nil)
 	s.orderRepository.EXPECT().Create(s.ctx, mock.MatchedBy(func(order model.Order) bool {
 		return order.UUID != uuid.Nil &&
@@ -222,8 +220,11 @@ func (s *ServiceSuite) TestCreate_RepositoryError() {
 	}
 	repoErr := gofakeit.Error()
 
+	s.orderInventoryClient.EXPECT().ValidateCompatibility(mock.Anything, mock.Anything).Return(nil)
+	s.orderInventoryClient.EXPECT().ReserveParts(s.ctx, partUUIDs).Return(nil)
 	s.orderInventoryClient.EXPECT().ListParts(s.ctx, partUUIDs).Return(modelParts, nil)
 	s.orderRepository.EXPECT().Create(s.ctx, mock.Anything).Return(repoErr)
+	s.orderInventoryClient.EXPECT().ReleaseParts(s.ctx, partUUIDs).Return(nil)
 
 	result, err := s.service.Create(s.ctx, input.CreateOrderInput{
 		HullUUID:   partID1,

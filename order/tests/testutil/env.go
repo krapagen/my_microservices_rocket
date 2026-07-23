@@ -43,6 +43,8 @@ type Env struct {
 }
 
 // NewEnv поднимает окружение для одного теста и регистрирует cleanup.
+// Поднимаются: уникальные БД для order и inventory, миграции, gRPC inventory+payment
+// через bufconn, HTTP order через httptest.
 func NewEnv(t *testing.T) *Env {
 	t.Helper()
 

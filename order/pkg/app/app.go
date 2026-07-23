@@ -26,7 +26,7 @@ func NewHTTPHandler(pool *pgxpool.Pool, txManager orderRepository.TxManager, inv
 	payClient := paymentClient.New(paymentGRPCClient)
 
 	// Service layer
-	orderService := service.New(orderRepo, invClient, payClient)
+	orderService := service.New(orderRepo, invClient, payClient, txManager)
 
 	// API layer
 	api := orderv1API.NewAPI(orderService)

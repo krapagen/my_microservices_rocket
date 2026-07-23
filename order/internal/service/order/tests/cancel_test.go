@@ -29,6 +29,7 @@ func (s *ServiceSuite) TestCancel_Success() {
 	s.orderRepository.EXPECT().Update(s.ctx, mock.MatchedBy(func(order model.Order) bool {
 		return order.UUID == orderID && order.Status == model.OrderStatusCancelled
 	})).Return(nil)
+	s.orderInventoryClient.EXPECT().ReleaseParts(s.ctx, []uuid.UUID{partID}).Return(nil)
 
 	err := s.service.Cancel(s.ctx, orderID)
 	s.NoError(err)

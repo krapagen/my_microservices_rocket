@@ -46,6 +46,12 @@ func (s *service) Cancel(ctx context.Context, orderUUID uuid.UUID) error {
 		log.ErrorContext(ctx, "не удалось отменить заказ", "orderUUID", orderUUID, "error", err)
 		return fmt.Errorf("обновить заказ: %w", err)
 	}
+
+	if err := s.inventoryClient.ReleaseParts(ctx, partUUIDsFromOrderItems(order.Items)); err != nil {
+		log.ErrorContext(ctx, "не удалось освободить детали при отмене заказа", "orderUUID", orderUUID, "error", err)
+		return fmt.Errorf("освободить детали: %w", err)
+	}
+
 	log.InfoContext(ctx, "Заказ успешно отменен", "orderUUID", orderUUID)
 	return nil
 }

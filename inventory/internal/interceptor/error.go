@@ -24,6 +24,16 @@ func ErrorInterceptor(
 		return nil, status.Error(codes.NotFound, err.Error())
 	case errors.Is(err, errs.ErrInvalidUUID):
 		return nil, status.Error(codes.InvalidArgument, err.Error())
+	case errors.Is(err, errs.ErrPartTypeMismatch):
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	case errors.Is(err, errs.ErrIncompatibleParts):
+		return nil, status.Error(codes.FailedPrecondition, err.Error())
+	case errors.Is(err, errs.ErrOutOfStock):
+		return nil, status.Error(codes.ResourceExhausted, err.Error())
+	case errors.Is(err, errs.ErrNothingToRelease):
+		return nil, status.Error(codes.FailedPrecondition, err.Error())
+	case errors.Is(err, errs.ErrInvalidProperties):
+		return nil, status.Error(codes.Internal, err.Error())
 	default:
 		return nil, status.Error(codes.Internal, "внутренняя ошибка")
 	}

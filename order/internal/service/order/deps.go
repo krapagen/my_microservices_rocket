@@ -16,8 +16,15 @@ type OrderRepository interface {
 
 type InventoryClient interface {
 	ListParts(ctx context.Context, uuids []uuid.UUID) ([]model.Part, error)
+	ValidateCompatibility(ctx context.Context, slots model.ShipSlots) error // НОВОЕ
+	ReserveParts(ctx context.Context, uuids []uuid.UUID) error              // НОВОЕ
+	ReleaseParts(ctx context.Context, uuids []uuid.UUID) error
 }
 
 type PaymentClient interface {
 	PayOrder(ctx context.Context, orderUUID uuid.UUID, method model.PaymentMethod) (uuid.UUID, error)
+}
+
+type TxManager interface {
+	Do(ctx context.Context, fn func(ctx context.Context) error) error
 }

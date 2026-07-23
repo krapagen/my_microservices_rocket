@@ -27,22 +27,21 @@ template-data:
   boilerplate-file: ".mockery_boilerplate_text.txt"
 
 packages:
-
   # Order service
   github.com/krapagen/my_microservices_rocket/order/internal/api/order/v1:
     config:
       include-interface-regex: ".*Service"
   github.com/krapagen/my_microservices_rocket/order/internal/service/order:
     config:
-      include-interface-regex: ".*(Repository|Client)"
+      include-interface-regex: ".*(Repository|Client|TxManager)"
 
   # Inventory service
   github.com/krapagen/my_microservices_rocket/inventory/internal/api/inventory/v1:
     config:
       include-interface-regex: ".*Service"
-  github.com/krapagen/my_microservices_rocket/inventory/internal/service/part:
+  github.com/krapagen/my_microservices_rocket/inventory/internal/service/application/part:
     config:
-      include-interface-regex: ".*Repository"
+      include-interface-regex: ".*(Repository|Checker|TxManager)"
 
   # Payment service
   github.com/krapagen/my_microservices_rocket/payment/internal/api/payment/v1:
