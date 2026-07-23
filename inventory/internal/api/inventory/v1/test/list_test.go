@@ -1,8 +1,6 @@
 package test
 
 import (
-	"time"
-
 	"github.com/brianvoe/gofakeit/v7"
 	"github.com/google/uuid"
 
@@ -11,18 +9,6 @@ import (
 	"github.com/krapagen/my_microservices_rocket/inventory/internal/service/input"
 	inventoryv1 "github.com/krapagen/my_microservices_rocket/shared/pkg/proto/inventory/v1"
 )
-
-func newFakePart(partType model.PartType) model.Part {
-	return model.Part{
-		UUID:          uuid.New(),
-		Name:          gofakeit.ProductName(),
-		Description:   gofakeit.LoremIpsumSentence(5),
-		Price:         int64(gofakeit.Price(100, 100000)),
-		PartType:      partType,
-		StockQuantity: int64(gofakeit.Number(1, 100)),
-		CreatedAt:     time.Now().UTC(),
-	}
-}
 
 func (s *APISuite) TestListParts_SuccessByType() {
 	var (
@@ -47,13 +33,13 @@ func (s *APISuite) TestListParts_SuccessByType() {
 	s.Require().NotNil(resp)
 	s.Require().Len(resp.GetParts(), 2)
 	for i, p := range resp.GetParts() {
-		s.Equal(parts[i].UUID.String(), p.GetUuid())
-		s.Equal(parts[i].Name, p.GetName())
-		s.Equal(parts[i].Description, p.GetDescription())
-		s.Equal(parts[i].Price, p.GetPrice())
+		s.Equal(parts[i].UUID().String(), p.GetUuid())
+		s.Equal(parts[i].Name(), p.GetName())
+		s.Equal(parts[i].Description(), p.GetDescription())
+		s.Equal(parts[i].Price(), p.GetPrice())
 		s.Equal(inventoryv1.PartType_PART_TYPE_HULL, p.GetPartType())
-		s.Equal(parts[i].StockQuantity, p.GetStockQuantity())
-		s.Equal(parts[i].CreatedAt, p.GetCreatedAt().AsTime())
+		s.Equal(int64(parts[i].StockQuantity()), p.GetStockQuantity())
+		s.Equal(parts[i].CreatedAt(), p.GetCreatedAt().AsTime())
 	}
 }
 

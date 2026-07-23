@@ -14,15 +14,17 @@ import (
 func (s *APISuite) TestGetPart_Success() {
 	var (
 		partUUID = uuid.New()
-		part     = model.Part{
-			UUID:          partUUID,
-			Name:          gofakeit.ProductName(),
-			Description:   gofakeit.LoremIpsumSentence(5),
-			Price:         int64(gofakeit.Price(100, 100000)),
-			PartType:      model.PartTypeEngine,
-			StockQuantity: int64(gofakeit.Number(1, 100)),
-			CreatedAt:     time.Now().UTC(),
-		}
+		part     = model.RestorePart(
+			partUUID,
+			gofakeit.ProductName(),
+			gofakeit.LoremIpsumSentence(5),
+			model.PartTypeEngine,
+			int64(gofakeit.Price(100, 100000)),
+			int(gofakeit.Number(1, 100)),
+			0,
+			model.PartProperties{},
+			time.Now().UTC(),
+		)
 		req = &inventoryv1.GetPartRequest{Uuid: partUUID.String()}
 	)
 
@@ -34,12 +36,12 @@ func (s *APISuite) TestGetPart_Success() {
 	s.Require().NotNil(resp)
 	s.Require().NotNil(resp.GetPart())
 	s.Equal(partUUID.String(), resp.GetPart().GetUuid())
-	s.Equal(part.Name, resp.GetPart().GetName())
-	s.Equal(part.Description, resp.GetPart().GetDescription())
-	s.Equal(part.Price, resp.GetPart().GetPrice())
+	s.Equal(part.Name(), resp.GetPart().GetName())
+	s.Equal(part.Description(), resp.GetPart().GetDescription())
+	s.Equal(part.Price(), resp.GetPart().GetPrice())
 	s.Equal(inventoryv1.PartType_PART_TYPE_ENGINE, resp.GetPart().GetPartType())
-	s.Equal(part.StockQuantity, resp.GetPart().GetStockQuantity())
-	s.Equal(part.CreatedAt, resp.GetPart().GetCreatedAt().AsTime())
+	s.Equal(int64(part.StockQuantity()), resp.GetPart().GetStockQuantity())
+	s.Equal(part.CreatedAt(), resp.GetPart().GetCreatedAt().AsTime())
 }
 
 func (s *APISuite) TestGetPart_InvalidUUID() {

@@ -7,7 +7,7 @@ import (
 	inventoryapi "github.com/krapagen/my_microservices_rocket/inventory/internal/api/inventory/v1"
 	"github.com/krapagen/my_microservices_rocket/inventory/internal/interceptor"
 	repository "github.com/krapagen/my_microservices_rocket/inventory/internal/repository/part"
-	service "github.com/krapagen/my_microservices_rocket/inventory/internal/service/part"
+	service "github.com/krapagen/my_microservices_rocket/inventory/internal/service/application/part"
 	inventoryv1 "github.com/krapagen/my_microservices_rocket/shared/pkg/proto/inventory/v1"
 )
 

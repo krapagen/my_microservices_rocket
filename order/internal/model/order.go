@@ -24,12 +24,6 @@ func (o Order) TotalPrice() int64 {
 	return total
 }
 
-type OrderItem struct {
-	PartUUID uuid.UUID
-	PartType PartType
-	Price    int64
-}
-
 type OrderStatus string
 
 const (

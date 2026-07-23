@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 
 	"github.com/krapagen/my_microservices_rocket/order/internal/model"
@@ -26,6 +27,7 @@ type ServiceSuite struct {
 	orderRepository      *mocks.OrderRepository
 	orderPaymentClient   *mocks.PaymentClient
 	orderInventoryClient *mocks.InventoryClient
+	txManager            *mocks.TxManager
 	service              OrderService
 }
 
@@ -34,7 +36,11 @@ func (s *ServiceSuite) SetupTest() {
 	s.orderRepository = mocks.NewOrderRepository(s.T())
 	s.orderPaymentClient = mocks.NewPaymentClient(s.T())
 	s.orderInventoryClient = mocks.NewInventoryClient(s.T())
-	s.service = order.New(s.orderRepository, s.orderInventoryClient, s.orderPaymentClient)
+	s.txManager = mocks.NewTxManager(s.T())
+	s.txManager.EXPECT().Do(mock.Anything, mock.Anything).RunAndReturn(func(ctx context.Context, fn func(ctx context.Context) error) error {
+		return fn(ctx)
+	}).Maybe()
+	s.service = order.New(s.orderRepository, s.orderInventoryClient, s.orderPaymentClient, s.txManager)
 }
 
 func TestServiceSuite(t *testing.T) {

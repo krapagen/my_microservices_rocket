@@ -48,3 +48,52 @@ func (c *client) ListParts(ctx context.Context, uuids []uuid.UUID) ([]model.Part
 	log.InfoContext(ctx, "Детали успешно получены из InventoryService", "count", len(resp.GetParts()))
 	return converter.PartsToModel(resp.GetParts()), nil
 }
+
+func (c *client) ValidateCompatibility(ctx context.Context, slots model.ShipSlots) error {
+	op := "order/internal/client/grpc/inventory/v1/ValidateCompatibility"
+	log := slog.With("op", op)
+
+	_, err := c.inventoryClient.ValidateCompatibility(ctx, converter.ShipSlotsToProto(slots))
+	if err != nil {
+		log.ErrorContext(ctx, "Ошибка проверки совместимости в InventoryService", "error", err)
+		return fmt.Errorf("проверить совместимость: %w", err)
+	}
+
+	return nil
+}
+
+func (c *client) ReserveParts(ctx context.Context, uuids []uuid.UUID) error {
+	op := "order/internal/client/grpc/inventory/v1/ReserveParts"
+	log := slog.With("op", op)
+
+	uuidsStrings := make([]string, 0, len(uuids))
+	for _, uuidCur := range uuids {
+		uuidsStrings = append(uuidsStrings, uuidCur.String())
+	}
+
+	_, err := c.inventoryClient.ReserveParts(ctx, &inventoryv1.ReservePartsRequest{Uuids: uuidsStrings})
+	if err != nil {
+		log.ErrorContext(ctx, "Ошибка резервирования деталей в InventoryService", "error", err)
+		return fmt.Errorf("зарезервировать детали: %w", err)
+	}
+
+	return nil
+}
+
+func (c *client) ReleaseParts(ctx context.Context, uuids []uuid.UUID) error {
+	op := "order/internal/client/grpc/inventory/v1/ReleaseParts"
+	log := slog.With("op", op)
+
+	uuidsStrings := make([]string, 0, len(uuids))
+	for _, uuidCur := range uuids {
+		uuidsStrings = append(uuidsStrings, uuidCur.String())
+	}
+
+	_, err := c.inventoryClient.ReleaseParts(ctx, &inventoryv1.ReleasePartsRequest{Uuids: uuidsStrings})
+	if err != nil {
+		log.ErrorContext(ctx, "Ошибка освобождения деталей в InventoryService", "error", err)
+		return fmt.Errorf("освободить детали: %w", err)
+	}
+
+	return nil
+}

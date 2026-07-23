@@ -28,7 +28,7 @@ func (a *api) GetPart(
 		return nil, err
 	}
 
-	log.InfoContext(ctx, "деталь найдена", "uuid", modelPart.UUID.String(), "name", modelPart.Name)
+	log.InfoContext(ctx, "деталь найдена", "uuid", modelPart.UUID().String(), "name", modelPart.Name())
 
 	return &inventoryv1.GetPartResponse{
 		Part: convert.PartToDto(modelPart),

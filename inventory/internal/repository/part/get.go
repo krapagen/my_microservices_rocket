@@ -19,27 +19,31 @@ func (r *repository) Get(ctx context.Context, inputUuid uuid.UUID) (model.Part, 
 	op := "Функция inventory/internl/repository/part/GetPart"
 	log := slog.With("op", op)
 	const query = `
-		SELECT 
+		SELECT
 			p.uuid,
 			p.name,
 			p.description,
 			p.part_type,
 			p.price,
 			p.stock_quantity,
+			p.reserved,
+			p.properties,
 			p.created_at
 		FROM parts AS p
 		WHERE p.uuid = $1;`
 
-	var part record.Part
+	var rec record.PartRecord
 
 	err := r.pool.QueryRow(ctx, query, inputUuid).Scan(
-		&part.UUID,
-		&part.Name,
-		&part.Description,
-		&part.PartType,
-		&part.Price,
-		&part.StockQuantity,
-		&part.CreatedAt,
+		&rec.UUID,
+		&rec.Name,
+		&rec.Description,
+		&rec.PartType,
+		&rec.Price,
+		&rec.StockQuantity,
+		&rec.Reserved,
+		&rec.Properties,
+		&rec.CreatedAt,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -50,5 +54,12 @@ func (r *repository) Get(ctx context.Context, inputUuid uuid.UUID) (model.Part, 
 		return model.Part{}, err
 	}
 	log.InfoContext(ctx, "деталь успешно получена", "uuid", inputUuid)
-	return converter.PartRecordToModel(part), nil
+
+	part, err := converter.PartRecordToModel(rec)
+	if err != nil {
+		log.ErrorContext(ctx, "ошибка конвертации детали", "error", err)
+		return model.Part{}, err
+	}
+
+	return part, nil
 }

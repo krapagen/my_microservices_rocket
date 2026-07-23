@@ -1,0 +1,14 @@
+grpc:
+  host: "localhost"
+  port: "50051"
+
+pg:
+  host: "localhost"
+  port: "5433"
+  database: "inventory"
+  user: "inventory_admin"
+  password: "inventory_secret"
+  sslmode: "disable"
+
+logger:
+  level: "info"

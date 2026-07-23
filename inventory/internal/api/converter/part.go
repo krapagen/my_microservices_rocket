@@ -40,13 +40,13 @@ func (c *converter) ToGetInputs(rawUUIDs []string) ([]uuid.UUID, error) {
 
 func (c *converter) PartToDto(part model.Part) *inventoryv1.Part {
 	return &inventoryv1.Part{
-		Uuid:          part.UUID.String(),
-		Name:          part.Name,
-		Description:   part.Description,
-		Price:         part.Price,
-		PartType:      c.PartTypeToDtoType(part.PartType),
-		StockQuantity: part.StockQuantity,
-		CreatedAt:     timestamppb.New(part.CreatedAt),
+		Uuid:          part.UUID().String(),
+		Name:          part.Name(),
+		Description:   part.Description(),
+		Price:         part.Price(),
+		PartType:      c.PartTypeToDtoType(part.PartType()),
+		StockQuantity: int64(part.StockQuantity()),
+		CreatedAt:     timestamppb.New(part.CreatedAt()),
 	}
 }
 

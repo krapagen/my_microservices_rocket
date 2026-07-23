@@ -3,6 +3,7 @@ package part
 import (
 	"context"
 	"fmt"
+	"log/slog"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -18,6 +19,9 @@ func (r *repository) List(
 	ctx context.Context,
 	filter input.PartFilter,
 ) ([]model.Part, error) {
+	op := "Функция inventory/internl/repository/part/List"
+	log := slog.With("op", op)
+
 	query := `
 		SELECT
 			p.uuid,
@@ -26,6 +30,8 @@ func (r *repository) List(
 			p.part_type,
 			p.price,
 			p.stock_quantity,
+			p.reserved,
+			p.properties,
 			p.created_at
 		FROM parts AS p`
 
@@ -45,31 +51,49 @@ func (r *repository) List(
 
 	rows, err := r.pool.Query(ctx, query, args...)
 	if err != nil {
+		log.ErrorContext(ctx, "ошибка получения списка деталей", "error", err)
 		return nil, fmt.Errorf("list parts: %w", err)
 	}
+	log.InfoContext(ctx, "список деталей успешно получен")
 	defer rows.Close()
 
-	records, err := pgx.CollectRows(rows, pgx.RowToStructByName[record.Part])
+	records, err := pgx.CollectRows(rows, pgx.RowToStructByName[record.PartRecord])
 	if err != nil {
+		log.ErrorContext(ctx, "ошибка конвертации списка деталей", "error", err)
 		return nil, fmt.Errorf("collect parts: %w", err)
 	}
+	log.InfoContext(ctx, "список деталей успешно конвертирован")
 
 	if len(filter.UUIDs) > 0 {
 		partsByUUID := make(map[uuid.UUID]model.Part, len(records))
 		for _, rec := range records {
-			partsByUUID[rec.UUID] = converter.PartRecordToModel(rec)
+			part, err := converter.PartRecordToModel(rec)
+			if err != nil {
+				log.ErrorContext(ctx, "ошибка конвертации детали", "error", err)
+				return nil, fmt.Errorf("convert part uuid=%s: %w", rec.UUID, err)
+			}
+			partsByUUID[rec.UUID] = part
 		}
-
+		log.InfoContext(ctx, "список деталей успешно конвертирован")
 		result := make([]model.Part, 0, len(filter.UUIDs))
 		for _, id := range filter.UUIDs {
 			part, ok := partsByUUID[id]
 			if !ok {
+				log.ErrorContext(ctx, "деталь не найдена", "uuid", id)
 				return nil, fmt.Errorf("%w: uuid=%s", errs.ErrPartNotFound, id)
 			}
 			result = append(result, part)
 		}
+		log.InfoContext(ctx, "список деталей успешно сформирован по UUID")
 		return result, nil
 	}
 
-	return converter.PartsRecordToModel(records), nil
+	result, err := converter.PartsRecordToModel(records)
+	if err != nil {
+		log.ErrorContext(ctx, "ошибка конвертации списка деталей", "error", err)
+		return nil, fmt.Errorf("convert parts: %w", err)
+	}
+	log.InfoContext(ctx, "список деталей успешно конвертирован")
+
+	return result, nil
 }
