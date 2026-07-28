@@ -16,12 +16,14 @@ type ServiceSuite struct {
 	ctx            context.Context
 	partRepository *mocks.PartRepository
 	service        inventoryv1.PartService
+	txManager      *mocks.TxManager
 }
 
 func (s *ServiceSuite) SetupTest() {
 	s.ctx = context.Background()
 	s.partRepository = mocks.NewPartRepository(s.T())
-	s.service = part.New(s.partRepository)
+	s.txManager = mocks.NewTxManager(s.T())
+	s.service = part.New(s.partRepository, s.txManager)
 }
 
 func TestServiceSuite(t *testing.T) {

@@ -7,6 +7,7 @@ import (
 )
 
 type Order struct {
+	UserUUID        uuid.UUID  `db:"user_uuid"`
 	UUID            uuid.UUID  `db:"uuid"`
 	Status          string     `db:"status"`
 	TransactionUUID *uuid.UUID `db:"transaction_uuid"` // nullable → указатель

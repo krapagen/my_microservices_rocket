@@ -74,10 +74,15 @@ func NewEnv(t *testing.T) *Env {
 		t.Fatalf("txManager: %v", err)
 	}
 
+	invTxManager, err := manager.New(trmpgx.NewDefaultFactory(inventoryPool))
+	if err != nil {
+		t.Fatalf("invTxManager: %v", err)
+	}
+
 	// Inventory gRPC через bufconn.
 	invLis := bufconn.Listen(bufSize)
 	invServer := grpc.NewServer(invApp.Interceptors()...)
-	invApp.RegisterServices(invServer, inventoryPool)
+	invApp.RegisterServices(invServer, inventoryPool, invTxManager)
 	go func() { _ = invServer.Serve(invLis) }()
 	t.Cleanup(invServer.Stop)
 

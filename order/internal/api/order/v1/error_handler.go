@@ -47,6 +47,7 @@ func mapError(err error) (int, string) {
 	// 409 Conflict
 	case errors.Is(err, errs.ErrOrderAlreadyPaid),
 		errors.Is(err, errs.ErrOrderCancelled),
+		errors.Is(err, errs.ErrOrderAssembled),
 		errors.Is(err, errs.ErrOutOfStock),
 		errors.Is(err, errs.ErrOrderStatusIncorrect),
 		errors.Is(err, errs.ErrIncompatibleParts):

@@ -15,43 +15,52 @@ import (
 func (s *service) Cancel(ctx context.Context, orderUUID uuid.UUID) error {
 	op := "order/internal/service/order/Cancel"
 	log := slog.With("op", op)
-	order, err := s.orderRepo.Get(ctx, orderUUID)
-	if err != nil {
-		log.ErrorContext(ctx, "не удалось получить заказ", "orderUUID", orderUUID, "error", err)
-		if errors.Is(err, errs.ErrOrderNotFound) {
-			log.ErrorContext(ctx, "Деталь не найдена в хранилище")
-			return errs.ErrOrderNotFound
+	err := s.txManager.Do(ctx, func(txCtx context.Context) error {
+		order, err := s.orderRepo.GetForUpdate(txCtx, orderUUID)
+		if err != nil {
+			log.ErrorContext(txCtx, "не удалось получить заказ", "orderUUID", orderUUID, "error", err)
+			if errors.Is(err, errs.ErrOrderNotFound) {
+				log.ErrorContext(txCtx, "Заказ не найден в хранилище", "orderUUID", orderUUID)
+				return errs.ErrOrderNotFound
+			}
+			return fmt.Errorf("получить заказ: %w", err)
 		}
-		return fmt.Errorf("получить заказ: %w", err)
-	}
 
-	switch order.Status {
-	case model.OrderStatusPaid:
-		log.ErrorContext(ctx, "Заказ уже оплачен", "orderUUID", orderUUID)
-		return errs.ErrOrderAlreadyPaid
-	case model.OrderStatusCancelled:
-		log.ErrorContext(ctx, "Заказ уже отменен", "orderUUID", orderUUID)
-		return errs.ErrOrderCancelled
-	case model.OrderStatusPendingPayment:
-		log.InfoContext(ctx, "Отмена заказа", "orderUUID", orderUUID)
-	default:
-		log.ErrorContext(ctx, "Неизвестный статус заказа", "orderUUID", orderUUID)
-		return errs.ErrOrderStatusIncorrect
-	}
+		switch order.Status {
+		case model.OrderStatusPaid:
+			log.ErrorContext(txCtx, "Заказ уже оплачен", "orderUUID", orderUUID)
+			return errs.ErrOrderAlreadyPaid
+		case model.OrderStatusCancelled:
+			log.ErrorContext(txCtx, "Заказ уже отменен", "orderUUID", orderUUID)
+			return errs.ErrOrderCancelled
+		case model.OrderStatusAssembled:
+			log.ErrorContext(txCtx, "Заказ уже собран", "orderUUID", orderUUID)
+			return errs.ErrOrderAssembled
+		case model.OrderStatusPendingPayment:
+			log.InfoContext(txCtx, "Отмена заказа", "orderUUID", orderUUID)
+		default:
+			log.ErrorContext(txCtx, "Неизвестный статус заказа", "orderUUID", orderUUID)
+			return errs.ErrOrderStatusIncorrect
+		}
 
-	order.Status = model.OrderStatusCancelled
+		order.Status = model.OrderStatusCancelled
 
-	err = s.orderRepo.Update(ctx, order)
+		err = s.orderRepo.Update(txCtx, order)
+		if err != nil {
+			log.ErrorContext(txCtx, "не удалось отменить заказ", "orderUUID", orderUUID, "error", err)
+			return fmt.Errorf("обновить заказ: %w", err)
+		}
+
+		if err := s.inventoryClient.ReleaseParts(txCtx, partUUIDsFromOrderItems(order.Items)); err != nil {
+			log.ErrorContext(txCtx, "не удалось освободить детали при отмене заказа", "orderUUID", orderUUID, "error", err)
+			return fmt.Errorf("освободить детали: %w", err)
+		}
+		return nil
+	})
 	if err != nil {
-		log.ErrorContext(ctx, "не удалось отменить заказ", "orderUUID", orderUUID, "error", err)
-		return fmt.Errorf("обновить заказ: %w", err)
+		log.ErrorContext(ctx, "Ошибка при отмене заказа", "orderUUID", orderUUID, "error", err)
+		return err
 	}
-
-	if err := s.inventoryClient.ReleaseParts(ctx, partUUIDsFromOrderItems(order.Items)); err != nil {
-		log.ErrorContext(ctx, "не удалось освободить детали при отмене заказа", "orderUUID", orderUUID, "error", err)
-		return fmt.Errorf("освободить детали: %w", err)
-	}
-
 	log.InfoContext(ctx, "Заказ успешно отменен", "orderUUID", orderUUID)
 	return nil
 }

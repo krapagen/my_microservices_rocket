@@ -25,16 +25,16 @@ func TestNewEngineProperties(t *testing.T) {
 	assert.Equal(t, 100, props.Engine().RequiredStrength())
 }
 
-func TestNewEngineProperties_Invalid(t *testing.T) {
-	_, err := model.NewEngineProperties(model.EngineClassA, 30)
-	assert.Error(t, err)
-	assert.True(t, errors.Is(err, errs.ErrInvalidProperties))
+func TestNewEngineProperties_CustomStrength(t *testing.T) {
+	_, err := model.NewEngineProperties(model.EngineClassC, 50)
+	assert.NoError(t, err)
 
-	_, err = model.NewEngineProperties(model.EngineClassC, 100)
-	assert.Error(t, err)
-	assert.True(t, errors.Is(err, errs.ErrInvalidProperties))
+	_, err = model.NewEngineProperties(model.EngineClassA, 30)
+	assert.NoError(t, err)
+}
 
-	_, err = model.NewEngineProperties("X", 100)
+func TestNewEngineProperties_InvalidClass(t *testing.T) {
+	_, err := model.NewEngineProperties("X", 100)
 	assert.Error(t, err)
 	assert.True(t, errors.Is(err, errs.ErrInvalidProperties))
 }

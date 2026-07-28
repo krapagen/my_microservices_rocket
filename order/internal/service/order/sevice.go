@@ -7,10 +7,11 @@ import (
 )
 
 type service struct {
-	orderRepo       OrderRepository
-	inventoryClient InventoryClient
-	paymentClient   PaymentClient
-	txManager       TxManager
+	orderRepo         OrderRepository
+	inventoryClient   InventoryClient
+	paymentClient     PaymentClient
+	orderPaidProducer OrderPaidProducer
+	txManager         TxManager
 }
 
 // New создаёт новый сервис заказов.
@@ -18,13 +19,15 @@ func New(
 	orderRepo OrderRepository,
 	inventoryClient InventoryClient,
 	paymentClient PaymentClient,
+	orderPaidProducer OrderPaidProducer,
 	txManager TxManager,
 ) *service {
 	return &service{
-		orderRepo:       orderRepo,
-		inventoryClient: inventoryClient,
-		paymentClient:   paymentClient,
-		txManager:       txManager,
+		orderRepo:         orderRepo,
+		inventoryClient:   inventoryClient,
+		paymentClient:     paymentClient,
+		orderPaidProducer: orderPaidProducer,
+		txManager:         txManager,
 	}
 }
 

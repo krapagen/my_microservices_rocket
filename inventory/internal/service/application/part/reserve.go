@@ -20,32 +20,38 @@ func (s *service) Reserve(ctx context.Context, uuids []uuid.UUID) error {
 		log.InfoContext(ctx, "пустой список UUID")
 		return nil
 	}
+	err := s.txManager.Do(ctx, func(ctx context.Context) error {
+		parts, err := s.partRepository.ListForUpdate(ctx, input.PartFilter{UUIDs: uuids})
+		if err != nil {
+			log.ErrorContext(ctx, "ошибка получения деталей", "error", err)
+			return err
+		}
+		log.InfoContext(ctx, "успешно прочитаны детали", "count", len(parts))
+		updated := make([]model.Part, 0, len(parts))
+		for _, p := range parts {
+			if p.Reserved() >= p.StockQuantity() {
+				log.ErrorContext(ctx, "деталь отсутствует на складе", "uuid", p.UUID())
+				return fmt.Errorf("деталь %s отсутствует на складе: %w", p.UUID(), errs.ErrOutOfStock)
+			}
 
-	parts, err := s.partRepository.List(ctx, input.PartFilter{UUIDs: uuids})
+			updated = append(updated, model.RestorePart(
+				p.UUID(),
+				p.Name(),
+				p.Description(),
+				p.PartType(),
+				p.Price(),
+				p.StockQuantity(),
+				p.Reserved()+1,
+				p.Properties(),
+				p.CreatedAt(),
+			))
+		}
+		log.InfoContext(ctx, "успешно подготовлены детали для обновления зарезервированного количества", "count", len(updated))
+		return s.partRepository.UpdateReservedBatch(ctx, updated)
+	})
 	if err != nil {
-		log.ErrorContext(ctx, "ошибка получения деталей", "error", err)
+		log.ErrorContext(ctx, "ошибка при выполнении транзакции", "error", err)
 		return err
 	}
-	log.InfoContext(ctx, "успешно прочитаны детали", "count", len(parts))
-	updated := make([]model.Part, 0, len(parts))
-	for _, p := range parts {
-		if p.Reserved() >= p.StockQuantity() {
-			log.ErrorContext(ctx, "деталь %s отсутствует на складе", "uuid", p.UUID())
-			return fmt.Errorf("деталь %s отсутствует на складе: %w", p.UUID(), errs.ErrOutOfStock)
-		}
-
-		updated = append(updated, model.RestorePart(
-			p.UUID(),
-			p.Name(),
-			p.Description(),
-			p.PartType(),
-			p.Price(),
-			p.StockQuantity(),
-			p.Reserved()+1,
-			p.Properties(),
-			p.CreatedAt(),
-		))
-	}
-	log.InfoContext(ctx, "успешно подготовлены детали для обновления зарезервированного количества", "count", len(updated))
-	return s.partRepository.UpdateReservedBatch(ctx, updated)
+	return nil
 }

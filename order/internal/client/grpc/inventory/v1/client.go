@@ -97,3 +97,21 @@ func (c *client) ReleaseParts(ctx context.Context, uuids []uuid.UUID) error {
 
 	return nil
 }
+
+func (c *client) CommitParts(ctx context.Context, uuids []uuid.UUID) error {
+	op := "order/internal/client/grpc/inventory/v1/CommitParts"
+	log := slog.With("op", op)
+
+	uuidsStrings := make([]string, 0, len(uuids))
+	for _, uuidCur := range uuids {
+		uuidsStrings = append(uuidsStrings, uuidCur.String())
+	}
+
+	_, err := c.inventoryClient.CommitParts(ctx, &inventoryv1.CommitPartsRequest{Uuids: uuidsStrings})
+	if err != nil {
+		log.ErrorContext(ctx, "Ошибка списания деталей в InventoryService", "error", err)
+		return fmt.Errorf("списать детали: %w", err)
+	}
+
+	return nil
+}

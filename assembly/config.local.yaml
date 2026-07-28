@@ -1,0 +1,16 @@
+assembler:
+  limit: 15
+
+kafka:
+  brokers:
+    - "localhost:9092"
+
+logger:
+  level: "info"
+
+order_paid_consumer:
+  topic: "order.paid"
+  group_id: "1"
+
+ship_assembled_producer:
+  topic: "assembly.ship-assembled"

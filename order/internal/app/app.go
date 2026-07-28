@@ -68,7 +68,7 @@ func initGRPCClient(address, service string) *grpc.ClientConn {
 	return conn
 }
 
-// Run управляет жизненным циклом приложения: запускает http-сервер,
+// Run управляет жизненным циклом приложения: запускает http-сервер и Kafka consumer,
 // обрабатывает сигналы ОС и выполняет graceful shutdown
 //
 // Сервер запускается в отдельной горутине, а main-горутина синхронно ждёт
@@ -79,9 +79,12 @@ func (a *App) Run() error {
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
 
-	errCh := make(chan error, 1)
+	errCh := make(chan error, 2) // HTTP + Kafka consumer
 	go func() {
 		errCh <- a.runHTTPServer()
+	}()
+	go func() {
+		errCh <- a.runConsumer(ctx)
 	}()
 
 	var runErr error
@@ -183,4 +186,14 @@ func (a *App) runHTTPServer() error {
 	slog.Info("🚀 http-сервер запущен", "address", config.AppConfig().HTTP.Address())
 
 	return a.httpServer.Serve(a.listener)
+}
+
+func (a *App) runConsumer(ctx context.Context) error {
+	slog.Info(
+		"🚀 Kafka consumer ShipAssembled запущен",
+		"topic", config.AppConfig().ShipAssembledConsumer.ShipAssembledTopicName(),
+		"group_id", config.AppConfig().ShipAssembledConsumer.ShipAssembledGroup(),
+	)
+
+	return a.diContainer.AssemblyConsumerService(ctx).RunConsumer(ctx)
 }

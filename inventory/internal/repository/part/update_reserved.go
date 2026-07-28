@@ -32,7 +32,7 @@ func (r *repository) UpdateReservedBatch(ctx context.Context, parts []model.Part
 		FROM unnest($1::uuid[], $2::int[]) AS batch(uuid, reserved)
 		WHERE p.uuid = batch.uuid`
 
-	res, err := r.pool.Exec(ctx, query, ids, reserved)
+	res, err := r.getter.DefaultTrOrDB(ctx, r.pool).Exec(ctx, query, ids, reserved)
 	if err != nil {
 		log.ErrorContext(ctx, "ошибка обновления reserved", "error", err)
 		return fmt.Errorf("update reserved: %w", err)

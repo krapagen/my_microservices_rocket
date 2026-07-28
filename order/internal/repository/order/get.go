@@ -21,6 +21,7 @@ func (r *repository) Get(ctx context.Context, orderUUID uuid.UUID) (model.Order,
 	log := slog.With("op", op)
 
 	type orderRow struct {
+		UserUUID        uuid.UUID  `db:"user_uuid"`
 		UUID            uuid.UUID  `db:"uuid"`
 		TransactionUUID *uuid.UUID `db:"transaction_uuid"`
 		PaymentMethod   *string    `db:"payment_method"`
@@ -32,7 +33,7 @@ func (r *repository) Get(ctx context.Context, orderUUID uuid.UUID) (model.Order,
 		Price           *int64     `db:"price"`
 	}
 
-	query := squirrel.Select("orders.uuid", "orders.transaction_uuid", "orders.payment_method", "orders.status", "orders.created_at", "orders.updated_at", "order_items.part_uuid", "order_items.part_type", "order_items.price").
+	query := squirrel.Select("orders.user_uuid", "orders.uuid", "orders.transaction_uuid", "orders.payment_method", "orders.status", "orders.created_at", "orders.updated_at", "order_items.part_uuid", "order_items.part_type", "order_items.price").
 		From("orders").
 		LeftJoin("order_items ON orders.uuid = order_items.order_uuid").
 		Where(squirrel.Eq{"orders.uuid": orderUUID}).
@@ -64,6 +65,7 @@ func (r *repository) Get(ctx context.Context, orderUUID uuid.UUID) (model.Order,
 
 	first := orderRows[0]
 	order := record.Order{
+		UserUUID:        first.UserUUID,
 		UUID:            first.UUID,
 		TransactionUUID: first.TransactionUUID,
 		PaymentMethod:   first.PaymentMethod,

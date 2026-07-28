@@ -2,6 +2,7 @@ package app
 
 // server, err := orderv1.NewServer(apiHandler, orderv1.WithErrorHandler(orderv1API.ErrorHandler))
 import (
+	"context"
 	"net/http"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -9,6 +10,8 @@ import (
 	orderv1API "github.com/krapagen/my_microservices_rocket/order/internal/api/order/v1"
 	inventoryClient "github.com/krapagen/my_microservices_rocket/order/internal/client/grpc/inventory/v1"
 	paymentClient "github.com/krapagen/my_microservices_rocket/order/internal/client/grpc/payment/v1"
+	"github.com/krapagen/my_microservices_rocket/order/internal/model"
+	orderProducer "github.com/krapagen/my_microservices_rocket/order/internal/producer/order_producer"
 	orderRepository "github.com/krapagen/my_microservices_rocket/order/internal/repository/order"
 	service "github.com/krapagen/my_microservices_rocket/order/internal/service/order"
 	orderv1 "github.com/krapagen/my_microservices_rocket/shared/pkg/openapi/order/v1"
@@ -18,6 +21,23 @@ import (
 
 // NewHTTPHandler creates HTTP handler from gRPC clients (for tests)
 func NewHTTPHandler(pool *pgxpool.Pool, txManager orderRepository.TxManager, inventoryGRPCClient inventoryv1.InventoryServiceClient, paymentGRPCClient paymentv1.PaymentServiceClient) (http.Handler, error) {
+	return NewHTTPHandlerWithProducer(
+		pool,
+		txManager,
+		inventoryGRPCClient,
+		paymentGRPCClient,
+		noopOrderPaidProducer{},
+	)
+}
+
+// NewHTTPHandlerWithProducer creates HTTP handler and uses provided OrderPaid producer.
+func NewHTTPHandlerWithProducer(
+	pool *pgxpool.Pool,
+	txManager orderRepository.TxManager,
+	inventoryGRPCClient inventoryv1.InventoryServiceClient,
+	paymentGRPCClient paymentv1.PaymentServiceClient,
+	orderPaidProducer orderProducer.ProducerService,
+) (http.Handler, error) {
 	// Repository layer
 	orderRepo := orderRepository.New(pool, txManager)
 
@@ -26,7 +46,7 @@ func NewHTTPHandler(pool *pgxpool.Pool, txManager orderRepository.TxManager, inv
 	payClient := paymentClient.New(paymentGRPCClient)
 
 	// Service layer
-	orderService := service.New(orderRepo, invClient, payClient, txManager)
+	orderService := service.New(orderRepo, invClient, payClient, orderPaidProducer, txManager)
 
 	// API layer
 	api := orderv1API.NewAPI(orderService)
@@ -38,4 +58,10 @@ func NewHTTPHandler(pool *pgxpool.Pool, txManager orderRepository.TxManager, inv
 	}
 
 	return server, nil
+}
+
+type noopOrderPaidProducer struct{}
+
+func (noopOrderPaidProducer) ProduceOrderPaid(_ context.Context, _ model.OrderPaid) error {
+	return nil
 }

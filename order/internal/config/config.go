@@ -9,11 +9,14 @@ import (
 )
 
 type config struct {
-	HTTP            httpConfig            `yaml:"http"`
-	PG              pgConfig              `yaml:"pg"`
-	Logger          loggerConfig          `yaml:"logger"`
-	InventoryClient inventoryClientConfig `yaml:"inventory_client"`
-	PaymentClient   paymentClientConfig   `yaml:"payment_client"`
+	HTTP                  httpConfig                  `yaml:"http"`
+	PG                    pgConfig                    `yaml:"pg"`
+	Logger                loggerConfig                `yaml:"logger"`
+	InventoryClient       inventoryClientConfig       `yaml:"inventory_client"`
+	PaymentClient         paymentClientConfig         `yaml:"payment_client"`
+	Kafka                 kafkaConfig                 `yaml:"kafka"`
+	OrderPaidProducer     orderPaidProducerConfig     `yaml:"order_paid_producer"`
+	ShipAssembledConsumer shipAssembledConsumerConfig `yaml:"ship_assembled_consumer"`
 }
 
 var appConfig *config

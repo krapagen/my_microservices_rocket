@@ -5,6 +5,8 @@ import (
 	"log/slog"
 	"os"
 
+	trmpgx "github.com/avito-tech/go-transaction-manager/drivers/pgxv5/v2"
+	"github.com/avito-tech/go-transaction-manager/trm/v2/manager"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	inventoryApi "github.com/krapagen/my_microservices_rocket/inventory/internal/api/inventory/v1"
@@ -54,6 +56,9 @@ type diContainer struct {
 	// Инфраструктура
 	pgPool *pgxpool.Pool
 
+	// Менеджер транзакций
+	txManager inventoryRepository.TxManager
+
 	// Репозитории
 	inventoryRepo part.PartRepository
 
@@ -91,9 +96,22 @@ func (d *diContainer) PGPool(ctx context.Context) *pgxpool.Pool {
 	return d.pgPool
 }
 
+func (d *diContainer) TxManager(ctx context.Context) inventoryRepository.TxManager {
+	if d.txManager == nil {
+		txManager, err := manager.New(trmpgx.NewDefaultFactory(d.PGPool(ctx)))
+		if err != nil {
+			slog.Error("не удалось создать Transaction Manager", "error", err)
+			os.Exit(1)
+		}
+		d.txManager = txManager
+	}
+
+	return d.txManager
+}
+
 func (d *diContainer) InventoryRepository(ctx context.Context) part.PartRepository {
 	if d.inventoryRepo == nil {
-		d.inventoryRepo = inventoryRepository.New(d.PGPool(ctx))
+		d.inventoryRepo = inventoryRepository.New(d.PGPool(ctx), d.TxManager(ctx))
 	}
 
 	return d.inventoryRepo
@@ -101,7 +119,7 @@ func (d *diContainer) InventoryRepository(ctx context.Context) part.PartReposito
 
 func (d *diContainer) InventoryService(ctx context.Context) inventoryApi.PartService {
 	if d.inventoryService == nil {
-		d.inventoryService = part.New(d.InventoryRepository(ctx))
+		d.inventoryService = part.New(d.InventoryRepository(ctx), d.TxManager(ctx))
 	}
 
 	return d.inventoryService
