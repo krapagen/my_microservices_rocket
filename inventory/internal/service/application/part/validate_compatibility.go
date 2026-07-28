@@ -11,8 +11,6 @@ import (
 	"github.com/krapagen/my_microservices_rocket/inventory/internal/service/input"
 )
 
-// inventory/internal/service/application/part/validate_compatibility.go
-
 // ValidateCompatibility разрешает UUID слотов в детали и проверяет их совместимость.
 func (s *service) ValidateCompatibility(ctx context.Context, slots model.ShipSlots) error {
 	resolved, err := s.resolveShipSlots(ctx, slots)

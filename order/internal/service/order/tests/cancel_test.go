@@ -25,7 +25,7 @@ func (s *ServiceSuite) TestCancel_Success() {
 		Status: model.OrderStatusPendingPayment,
 	}
 
-	s.orderRepository.EXPECT().Get(s.ctx, orderID).Return(testOrder, nil)
+	s.orderRepository.EXPECT().GetForUpdate(s.ctx, orderID).Return(testOrder, nil)
 	s.orderRepository.EXPECT().Update(s.ctx, mock.MatchedBy(func(order model.Order) bool {
 		return order.UUID == orderID && order.Status == model.OrderStatusCancelled
 	})).Return(nil)
@@ -37,7 +37,7 @@ func (s *ServiceSuite) TestCancel_Success() {
 
 func (s *ServiceSuite) TestCancel_NotFound() {
 	orderID := uuid.New()
-	s.orderRepository.EXPECT().Get(s.ctx, orderID).Return(model.Order{}, errs.ErrOrderNotFound)
+	s.orderRepository.EXPECT().GetForUpdate(s.ctx, orderID).Return(model.Order{}, errs.ErrOrderNotFound)
 
 	err := s.service.Cancel(s.ctx, orderID)
 	s.Error(err)
@@ -47,7 +47,7 @@ func (s *ServiceSuite) TestCancel_NotFound() {
 func (s *ServiceSuite) TestCancel_GetRepoError() {
 	orderID := uuid.New()
 	repoErr := gofakeit.Error()
-	s.orderRepository.EXPECT().Get(s.ctx, orderID).Return(model.Order{}, repoErr)
+	s.orderRepository.EXPECT().GetForUpdate(s.ctx, orderID).Return(model.Order{}, repoErr)
 
 	err := s.service.Cancel(s.ctx, orderID)
 	s.Error(err)
@@ -69,7 +69,7 @@ func (s *ServiceSuite) TestCancel_AlreadyPaid() {
 		Status: model.OrderStatusPaid,
 	}
 
-	s.orderRepository.EXPECT().Get(s.ctx, orderID).Return(testOrder, nil)
+	s.orderRepository.EXPECT().GetForUpdate(s.ctx, orderID).Return(testOrder, nil)
 
 	err := s.service.Cancel(s.ctx, orderID)
 	s.Error(err)
@@ -91,7 +91,7 @@ func (s *ServiceSuite) TestCancel_AlreadyCancelled() {
 		Status: model.OrderStatusCancelled,
 	}
 
-	s.orderRepository.EXPECT().Get(s.ctx, orderID).Return(testOrder, nil)
+	s.orderRepository.EXPECT().GetForUpdate(s.ctx, orderID).Return(testOrder, nil)
 
 	err := s.service.Cancel(s.ctx, orderID)
 	s.Error(err)
@@ -113,7 +113,7 @@ func (s *ServiceSuite) TestCancel_UnknownStatus() {
 		Status: model.OrderStatus("UNKNOWN"),
 	}
 
-	s.orderRepository.EXPECT().Get(s.ctx, orderID).Return(testOrder, nil)
+	s.orderRepository.EXPECT().GetForUpdate(s.ctx, orderID).Return(testOrder, nil)
 
 	err := s.service.Cancel(s.ctx, orderID)
 	s.Error(err)
@@ -137,7 +137,7 @@ func (s *ServiceSuite) TestCancel_UpdateError() {
 		Status: model.OrderStatusPendingPayment,
 	}
 
-	s.orderRepository.EXPECT().Get(s.ctx, orderID).Return(testOrder, nil)
+	s.orderRepository.EXPECT().GetForUpdate(s.ctx, orderID).Return(testOrder, nil)
 	s.orderRepository.EXPECT().Update(s.ctx, mock.Anything).Return(updateErr)
 
 	err := s.service.Cancel(s.ctx, orderID)

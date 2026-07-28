@@ -7,6 +7,7 @@ import (
 )
 
 type Order struct {
+	UserUUID        uuid.UUID
 	UUID            uuid.UUID
 	Items           []OrderItem
 	TransactionUUID *uuid.UUID
@@ -30,6 +31,7 @@ const (
 	OrderStatusPendingPayment OrderStatus = "PENDING_PAYMENT"
 	OrderStatusPaid           OrderStatus = "PAID"
 	OrderStatusCancelled      OrderStatus = "CANCELLED"
+	OrderStatusAssembled      OrderStatus = "ASSEMBLED"
 )
 
 type PaymentMethod string

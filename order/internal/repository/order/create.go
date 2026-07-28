@@ -34,9 +34,9 @@ func (r *repository) createOrder(ctx context.Context, order model.Order) error {
 	log := slog.With("op", op)
 	orderRecord, _ := repoConverter.OrderToRecord(order)
 	query := squirrel.Insert("orders").
-		Columns("uuid", "transaction_uuid", "payment_method", "status", "created_at", "updated_at").
+		Columns("user_uuid", "uuid", "transaction_uuid", "payment_method", "status", "created_at", "updated_at").
 		PlaceholderFormat(squirrel.Dollar).
-		Values(orderRecord.UUID, orderRecord.TransactionUUID, orderRecord.PaymentMethod, orderRecord.Status, orderRecord.CreatedAt, orderRecord.UpdatedAt)
+		Values(orderRecord.UserUUID, orderRecord.UUID, orderRecord.TransactionUUID, orderRecord.PaymentMethod, orderRecord.Status, orderRecord.CreatedAt, orderRecord.UpdatedAt)
 
 	sql, args, err := query.ToSql()
 	if err != nil {

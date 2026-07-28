@@ -34,7 +34,7 @@ func (r *repository) Get(ctx context.Context, inputUuid uuid.UUID) (model.Part, 
 
 	var rec record.PartRecord
 
-	err := r.pool.QueryRow(ctx, query, inputUuid).Scan(
+	err := r.getter.DefaultTrOrDB(ctx, r.pool).QueryRow(ctx, query, inputUuid).Scan(
 		&rec.UUID,
 		&rec.Name,
 		&rec.Description,

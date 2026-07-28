@@ -1,6 +1,10 @@
 package app
 
 import (
+	"fmt"
+
+	trmpgx "github.com/avito-tech/go-transaction-manager/drivers/pgxv5/v2"
+	"github.com/avito-tech/go-transaction-manager/trm/v2/manager"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"google.golang.org/grpc"
 
@@ -18,10 +22,22 @@ func Interceptors() []grpc.ServerOption {
 	}
 }
 
-// RegisterServices регистрирует сервисы на gRPC сервере
-func RegisterServices(grpcServer *grpc.Server, pool *pgxpool.Pool) {
-	repo := repository.New(pool)
-	svc := service.New(repo)
+// RegisterServices регистрирует сервисы на gRPC сервере.
+// txManager передаётся опционально: если не передан — создаётся из pool.
+func RegisterServices(grpcServer *grpc.Server, pool *pgxpool.Pool, txManagers ...repository.TxManager) {
+	var txManager repository.TxManager
+	if len(txManagers) > 0 {
+		txManager = txManagers[0]
+	} else {
+		var err error
+		txManager, err = manager.New(trmpgx.NewDefaultFactory(pool))
+		if err != nil {
+			panic(fmt.Errorf("create transaction manager: %w", err))
+		}
+	}
+
+	repo := repository.New(pool, txManager)
+	svc := service.New(repo, txManager)
 	api := inventoryapi.New(svc)
 	inventoryv1.RegisterInventoryServiceServer(grpcServer, api)
 }

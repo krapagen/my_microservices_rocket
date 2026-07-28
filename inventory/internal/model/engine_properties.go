@@ -43,20 +43,10 @@ func requiredStrengthByClass(class EngineClass) (int, error) {
 }
 
 // NewEngineProperties создаёт свойства двигателя.
-// Класс двигателя определяет требуемую прочность корпуса:
-//
-//	C -> 30, B -> 70, A -> 100.
+// Класс двигателя — метка, а requiredStrength задаётся явно.
 func NewEngineProperties(class EngineClass, requiredStrength int) (PartProperties, error) {
-	expected, err := requiredStrengthByClass(class)
-	if err != nil {
+	if _, err := requiredStrengthByClass(class); err != nil {
 		return PartProperties{}, err
-	}
-
-	if requiredStrength != expected {
-		return PartProperties{}, fmt.Errorf(
-			"для класса %q required_strength должен быть %d, получено %d: %w",
-			class, expected, requiredStrength, errs.ErrInvalidProperties,
-		)
 	}
 
 	return PartProperties{

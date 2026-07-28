@@ -43,6 +43,63 @@ func (_m *PartService) EXPECT() *PartService_Expecter {
 	return &PartService_Expecter{mock: &_m.Mock}
 }
 
+// Commit provides a mock function for the type PartService
+func (_mock *PartService) Commit(ctx context.Context, filter input.CommitFilter) error {
+	ret := _mock.Called(ctx, filter)
+
+	if len(ret) == 0 {
+		panic("no return value specified for Commit")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, input.CommitFilter) error); ok {
+		r0 = returnFunc(ctx, filter)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// PartService_Commit_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Commit'
+type PartService_Commit_Call struct {
+	*mock.Call
+}
+
+// Commit is a helper method to define mock.On call
+//   - ctx context.Context
+//   - filter input.CommitFilter
+func (_e *PartService_Expecter) Commit(ctx interface{}, filter interface{}) *PartService_Commit_Call {
+	return &PartService_Commit_Call{Call: _e.mock.On("Commit", ctx, filter)}
+}
+
+func (_c *PartService_Commit_Call) Run(run func(ctx context.Context, filter input.CommitFilter)) *PartService_Commit_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 input.CommitFilter
+		if args[1] != nil {
+			arg1 = args[1].(input.CommitFilter)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *PartService_Commit_Call) Return(err error) *PartService_Commit_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *PartService_Commit_Call) RunAndReturn(run func(ctx context.Context, filter input.CommitFilter) error) *PartService_Commit_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // Get provides a mock function for the type PartService
 func (_mock *PartService) Get(ctx context.Context, partUUID uuid.UUID) (model.Part, error) {
 	ret := _mock.Called(ctx, partUUID)

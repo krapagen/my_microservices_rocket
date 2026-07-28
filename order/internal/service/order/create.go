@@ -70,6 +70,7 @@ func (s *service) Create(ctx context.Context, in input.CreateOrderInput) (model.
 	}
 
 	order := model.Order{
+		UserUUID:  in.UserUUID,
 		UUID:      uuid.New(),
 		Items:     items,
 		Status:    model.OrderStatusPendingPayment,

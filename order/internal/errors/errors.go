@@ -9,6 +9,7 @@ var (
 	ErrOrderNotFound        = errors.New("заказ не найден")
 	ErrOrderAlreadyPaid     = errors.New("заказ уже оплачен")
 	ErrOrderCancelled       = errors.New("заказ отменён")
+	ErrOrderAssembled       = errors.New("заказ уже собран")
 	ErrOrderStatusIncorrect = errors.New("неверный статус заказа")
 
 	// Ошибки деталей

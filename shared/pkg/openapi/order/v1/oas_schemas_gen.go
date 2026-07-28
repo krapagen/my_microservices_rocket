@@ -58,6 +58,8 @@ type CreateOrderRequest struct {
 	ShieldUUID OptNilUUID `json:"shield_uuid"`
 	// UUID вооружения (опциональный, v4).
 	WeaponUUID OptNilUUID `json:"weapon_uuid"`
+	// UUID пользователя (обязательный, v4).
+	UserUUID NilUUID `json:"user_uuid"`
 }
 
 // GetHullUUID returns the value of HullUUID.
@@ -80,6 +82,11 @@ func (s *CreateOrderRequest) GetWeaponUUID() OptNilUUID {
 	return s.WeaponUUID
 }
 
+// GetUserUUID returns the value of UserUUID.
+func (s *CreateOrderRequest) GetUserUUID() NilUUID {
+	return s.UserUUID
+}
+
 // SetHullUUID sets the value of HullUUID.
 func (s *CreateOrderRequest) SetHullUUID(val uuid.UUID) {
 	s.HullUUID = val
@@ -98,6 +105,11 @@ func (s *CreateOrderRequest) SetShieldUUID(val OptNilUUID) {
 // SetWeaponUUID sets the value of WeaponUUID.
 func (s *CreateOrderRequest) SetWeaponUUID(val OptNilUUID) {
 	s.WeaponUUID = val
+}
+
+// SetUserUUID sets the value of UserUUID.
+func (s *CreateOrderRequest) SetUserUUID(val NilUUID) {
+	s.UserUUID = val
 }
 
 // Ref: #
@@ -169,6 +181,51 @@ func (*GetOrderInternalServerError) getOrderRes() {}
 type GetOrderNotFound Error
 
 func (*GetOrderNotFound) getOrderRes() {}
+
+// NewNilUUID returns new NilUUID with value set to v.
+func NewNilUUID(v uuid.UUID) NilUUID {
+	return NilUUID{
+		Value: v,
+	}
+}
+
+// NilUUID is nullable uuid.UUID.
+type NilUUID struct {
+	Value uuid.UUID
+	Null  bool
+}
+
+// SetTo sets value to v.
+func (o *NilUUID) SetTo(v uuid.UUID) {
+	o.Null = false
+	o.Value = v
+}
+
+// IsNull returns true if value is Null.
+func (o NilUUID) IsNull() bool { return o.Null }
+
+// SetToNull sets value to null.
+func (o *NilUUID) SetToNull() {
+	o.Null = true
+	var v uuid.UUID
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o NilUUID) Get() (v uuid.UUID, ok bool) {
+	if o.Null {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o NilUUID) Or(d uuid.UUID) uuid.UUID {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
 
 // NewOptNilPaymentMethod returns new OptNilPaymentMethod with value set to v.
 func NewOptNilPaymentMethod(v PaymentMethod) OptNilPaymentMethod {
@@ -300,6 +357,8 @@ func (o OptNilUUID) Or(d uuid.UUID) uuid.UUID {
 type OrderDto struct {
 	// UUID заказа (v4).
 	OrderUUID uuid.UUID `json:"order_uuid"`
+	// UUID пользователя (v4).
+	UserUUID uuid.UUID `json:"user_uuid"`
 	// UUID корпуса (v4).
 	HullUUID uuid.UUID `json:"hull_uuid"`
 	// UUID двигателя (v4).
@@ -322,6 +381,11 @@ type OrderDto struct {
 // GetOrderUUID returns the value of OrderUUID.
 func (s *OrderDto) GetOrderUUID() uuid.UUID {
 	return s.OrderUUID
+}
+
+// GetUserUUID returns the value of UserUUID.
+func (s *OrderDto) GetUserUUID() uuid.UUID {
+	return s.UserUUID
 }
 
 // GetHullUUID returns the value of HullUUID.
@@ -372,6 +436,11 @@ func (s *OrderDto) GetCreatedAt() time.Time {
 // SetOrderUUID sets the value of OrderUUID.
 func (s *OrderDto) SetOrderUUID(val uuid.UUID) {
 	s.OrderUUID = val
+}
+
+// SetUserUUID sets the value of UserUUID.
+func (s *OrderDto) SetUserUUID(val uuid.UUID) {
+	s.UserUUID = val
 }
 
 // SetHullUUID sets the value of HullUUID.
@@ -429,6 +498,7 @@ const (
 	OrderStatusPENDINGPAYMENT OrderStatus = "PENDING_PAYMENT"
 	OrderStatusPAID           OrderStatus = "PAID"
 	OrderStatusCANCELLED      OrderStatus = "CANCELLED"
+	OrderStatusASSEMBLED      OrderStatus = "ASSEMBLED"
 )
 
 // AllValues returns all OrderStatus values.
@@ -437,6 +507,7 @@ func (OrderStatus) AllValues() []OrderStatus {
 		OrderStatusPENDINGPAYMENT,
 		OrderStatusPAID,
 		OrderStatusCANCELLED,
+		OrderStatusASSEMBLED,
 	}
 }
 
@@ -448,6 +519,8 @@ func (s OrderStatus) MarshalText() ([]byte, error) {
 	case OrderStatusPAID:
 		return []byte(s), nil
 	case OrderStatusCANCELLED:
+		return []byte(s), nil
+	case OrderStatusASSEMBLED:
 		return []byte(s), nil
 	default:
 		return nil, errors.Errorf("invalid value: %q", s)
@@ -465,6 +538,9 @@ func (s *OrderStatus) UnmarshalText(data []byte) error {
 		return nil
 	case OrderStatusCANCELLED:
 		*s = OrderStatusCANCELLED
+		return nil
+	case OrderStatusASSEMBLED:
+		*s = OrderStatusASSEMBLED
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)

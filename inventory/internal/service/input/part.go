@@ -12,3 +12,8 @@ type PartFilter struct {
 	// PartType — фильтр по типу (игнорируется если UUIDs заполнен)
 	PartType model.PartType
 }
+
+type CommitFilter struct {
+	// UUIDs - эти детали будут забронированы, затем сняты с резерва и списаны со склада
+	UUIDs []uuid.UUID
+}

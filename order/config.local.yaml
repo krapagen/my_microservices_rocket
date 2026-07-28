@@ -18,3 +18,14 @@ payment_client:
 
 logger:
   level: "info"
+
+kafka:
+  brokers:
+    - "localhost:9092"
+
+order_paid_producer:
+  topic: "order.paid"
+
+ship_assembled_consumer:
+  topic: "assembly.ship-assembled"
+  group_id: "1"

@@ -11,6 +11,7 @@ import (
 func OrderModelToDTO(order model.Order) *orderv1.OrderDto {
 	dto := &orderv1.OrderDto{
 		OrderUUID:  order.UUID,
+		UserUUID:   order.UserUUID,
 		TotalPrice: order.TotalPrice(),
 		Status:     orderv1.OrderStatus(order.Status),
 		CreatedAt:  order.CreatedAt,
@@ -94,6 +95,7 @@ func extractPartUUIDs(items []model.OrderItem) (hullUUID, engineUUID, shieldUUID
 
 func CreateOrderRequestToInput(req *orderv1.CreateOrderRequest) input.CreateOrderInput {
 	orderInput := input.CreateOrderInput{
+		UserUUID:   req.UserUUID.Value,
 		HullUUID:   req.HullUUID,
 		EngineUUID: req.EngineUUID,
 	}

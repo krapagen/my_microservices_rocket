@@ -31,7 +31,8 @@ func TestNewPartType(t *testing.T) {
 }
 
 func TestAllPartTypes(t *testing.T) {
-	assert.Equal(t,
+	assert.Equal(
+		t,
 		[]model.PartType{
 			model.PartTypeUnspecified,
 			model.PartTypeHull,

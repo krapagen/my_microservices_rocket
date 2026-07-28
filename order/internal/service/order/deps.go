@@ -12,6 +12,7 @@ type OrderRepository interface {
 	Create(ctx context.Context, order model.Order) error
 	Get(ctx context.Context, orderUUID uuid.UUID) (model.Order, error)
 	Update(ctx context.Context, order model.Order) error
+	GetForUpdate(ctx context.Context, orderUUID uuid.UUID) (model.Order, error)
 }
 
 type InventoryClient interface {
@@ -19,10 +20,15 @@ type InventoryClient interface {
 	ValidateCompatibility(ctx context.Context, slots model.ShipSlots) error // НОВОЕ
 	ReserveParts(ctx context.Context, uuids []uuid.UUID) error              // НОВОЕ
 	ReleaseParts(ctx context.Context, uuids []uuid.UUID) error
+	CommitParts(ctx context.Context, uuids []uuid.UUID) error
 }
 
 type PaymentClient interface {
 	PayOrder(ctx context.Context, orderUUID uuid.UUID, method model.PaymentMethod) (uuid.UUID, error)
+}
+
+type OrderPaidProducer interface {
+	ProduceOrderPaid(ctx context.Context, event model.OrderPaid) error
 }
 
 type TxManager interface {

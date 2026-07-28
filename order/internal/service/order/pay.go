@@ -18,7 +18,7 @@ func (s *service) Pay(ctx context.Context, orderUUID uuid.UUID, method model.Pay
 
 	err := s.txManager.Do(ctx, func(txCtx context.Context) error {
 		// 1. Читаем заказ в транзакции
-		order, err := s.orderRepo.Get(txCtx, orderUUID)
+		order, err := s.orderRepo.GetForUpdate(txCtx, orderUUID)
 		if err != nil {
 			log.ErrorContext(txCtx, "Не удалось получить заказ", "orderUUID", orderUUID, "error", err)
 			return fmt.Errorf("получить заказ: %w", err)
@@ -33,6 +33,9 @@ func (s *service) Pay(ctx context.Context, orderUUID uuid.UUID, method model.Pay
 		case model.OrderStatusCancelled:
 			log.ErrorContext(txCtx, "Заказ отменён", "orderUUID", orderUUID)
 			return errs.ErrOrderCancelled
+		case model.OrderStatusAssembled:
+			log.ErrorContext(txCtx, "Заказ уже собран", "orderUUID", orderUUID)
+			return errs.ErrOrderAssembled
 		default:
 			log.ErrorContext(txCtx, "Неизвестный статус заказа", "orderUUID", orderUUID, "status", order.Status)
 			return errs.ErrOrderStatusIncorrect
@@ -56,6 +59,16 @@ func (s *service) Pay(ctx context.Context, orderUUID uuid.UUID, method model.Pay
 			return fmt.Errorf("обновить заказ: %w", err)
 		}
 		log.InfoContext(txCtx, "Заказ успешно обновлён после оплаты", "orderUUID", orderUUID)
+
+		err = s.orderPaidProducer.ProduceOrderPaid(txCtx, model.OrderPaid{
+			EventUUID: uuid.New(),
+			OrderUUID: order.UUID,
+			UserUUID:  order.UserUUID,
+		})
+		if err != nil {
+			log.ErrorContext(txCtx, "Не удалось отправить событие OrderPaid", "orderUUID", orderUUID, "error", err)
+			return fmt.Errorf("produce order paid: %w", err)
+		}
 		return nil
 	})
 	if err != nil {

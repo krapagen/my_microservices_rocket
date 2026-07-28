@@ -72,14 +72,9 @@ func (s *APISuite) TestValidateCompatibility_InvalidEngineUUID() {
 		EngineUuid: "not-a-uuid",
 	}
 
-	s.partService.EXPECT().ValidateCompatibility(s.ctx, model.ShipSlots{
-		HullUUID:   uuid.MustParse(hull),
-		EngineUUID: uuid.Nil,
-	}).Return(errs.ErrPartTypeMismatch)
-
 	resp, err := s.api.ValidateCompatibility(s.ctx, req)
 	s.Error(err)
-	s.ErrorIs(err, errs.ErrPartTypeMismatch)
+	s.ErrorIs(err, errs.ErrInvalidUUID)
 	s.Nil(resp)
 }
 
