@@ -5,6 +5,7 @@ import (
 	"log/slog"
 
 	"github.com/joho/godotenv"
+
 	"github.com/krapagen/my_microservices_rocket/assembly/internal/app"
 	"github.com/krapagen/my_microservices_rocket/assembly/internal/config"
 )

@@ -24,7 +24,6 @@ func NewService(
 }
 
 func (s *service) RunConsumer(ctx context.Context) error {
-
 	slog.InfoContext(ctx, "запуск потребителя OrderPaid")
 
 	return s.orderPaidConsumer.Consume(ctx, s.OrderPaidHandler)

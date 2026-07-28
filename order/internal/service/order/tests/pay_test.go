@@ -27,7 +27,7 @@ func (s *ServiceSuite) TestPay_Success() {
 		Status: model.OrderStatusPendingPayment,
 	}
 
-	s.orderRepository.EXPECT().Get(s.ctx, orderID).Return(testOrder, nil)
+	s.orderRepository.EXPECT().GetForUpdate(s.ctx, orderID).Return(testOrder, nil)
 	s.orderPaymentClient.EXPECT().PayOrder(s.ctx, orderID, paymentMethod).Return(transactionID, nil)
 	s.orderRepository.EXPECT().Update(s.ctx, mock.MatchedBy(func(order model.Order) bool {
 		return order.UUID == orderID &&
@@ -45,7 +45,7 @@ func (s *ServiceSuite) TestPay_Success() {
 
 func (s *ServiceSuite) TestPay_NotFound() {
 	orderID := uuid.New()
-	s.orderRepository.EXPECT().Get(s.ctx, orderID).Return(model.Order{}, errs.ErrOrderNotFound)
+	s.orderRepository.EXPECT().GetForUpdate(s.ctx, orderID).Return(model.Order{}, errs.ErrOrderNotFound)
 
 	result, err := s.service.Pay(s.ctx, orderID, model.PaymentMethodCard)
 	s.Error(err)
@@ -56,7 +56,7 @@ func (s *ServiceSuite) TestPay_NotFound() {
 func (s *ServiceSuite) TestPay_GetRepoError() {
 	orderID := uuid.New()
 	repoErr := gofakeit.Error()
-	s.orderRepository.EXPECT().Get(s.ctx, orderID).Return(model.Order{}, repoErr)
+	s.orderRepository.EXPECT().GetForUpdate(s.ctx, orderID).Return(model.Order{}, repoErr)
 
 	result, err := s.service.Pay(s.ctx, orderID, model.PaymentMethodCard)
 	s.Error(err)
@@ -79,7 +79,7 @@ func (s *ServiceSuite) TestPay_AlreadyPaid() {
 		Status: model.OrderStatusPaid,
 	}
 
-	s.orderRepository.EXPECT().Get(s.ctx, orderID).Return(testOrder, nil)
+	s.orderRepository.EXPECT().GetForUpdate(s.ctx, orderID).Return(testOrder, nil)
 
 	result, err := s.service.Pay(s.ctx, orderID, model.PaymentMethodCard)
 	s.Error(err)
@@ -102,7 +102,7 @@ func (s *ServiceSuite) TestPay_Cancelled() {
 		Status: model.OrderStatusCancelled,
 	}
 
-	s.orderRepository.EXPECT().Get(s.ctx, orderID).Return(testOrder, nil)
+	s.orderRepository.EXPECT().GetForUpdate(s.ctx, orderID).Return(testOrder, nil)
 
 	result, err := s.service.Pay(s.ctx, orderID, model.PaymentMethodCard)
 	s.Error(err)
@@ -125,7 +125,7 @@ func (s *ServiceSuite) TestPay_UnknownStatus() {
 		Status: model.OrderStatus("UNKNOWN"),
 	}
 
-	s.orderRepository.EXPECT().Get(s.ctx, orderID).Return(testOrder, nil)
+	s.orderRepository.EXPECT().GetForUpdate(s.ctx, orderID).Return(testOrder, nil)
 
 	result, err := s.service.Pay(s.ctx, orderID, model.PaymentMethodCard)
 	s.Error(err)
@@ -151,7 +151,7 @@ func (s *ServiceSuite) TestPay_PaymentError() {
 		Status: model.OrderStatusPendingPayment,
 	}
 
-	s.orderRepository.EXPECT().Get(s.ctx, orderID).Return(testOrder, nil)
+	s.orderRepository.EXPECT().GetForUpdate(s.ctx, orderID).Return(testOrder, nil)
 	s.orderPaymentClient.EXPECT().PayOrder(s.ctx, orderID, paymentMethod).Return(uuid.Nil, paymentErr)
 
 	result, err := s.service.Pay(s.ctx, orderID, paymentMethod)
@@ -179,7 +179,7 @@ func (s *ServiceSuite) TestPay_UpdateError() {
 		Status: model.OrderStatusPendingPayment,
 	}
 
-	s.orderRepository.EXPECT().Get(s.ctx, orderID).Return(testOrder, nil)
+	s.orderRepository.EXPECT().GetForUpdate(s.ctx, orderID).Return(testOrder, nil)
 	s.orderPaymentClient.EXPECT().PayOrder(s.ctx, orderID, paymentMethod).Return(transactionID, nil)
 	s.orderRepository.EXPECT().Update(s.ctx, mock.Anything).Return(updateErr)
 

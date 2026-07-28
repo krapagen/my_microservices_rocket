@@ -4,9 +4,10 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+	"google.golang.org/protobuf/proto"
+
 	"github.com/krapagen/my_microservices_rocket/assembly/internal/model"
 	eventsv1 "github.com/krapagen/my_microservices_rocket/shared/pkg/proto/events/v1"
-	"google.golang.org/protobuf/proto"
 )
 
 func decodeOrderPaid(data []byte) (model.OrderPaid, error) {

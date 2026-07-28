@@ -26,7 +26,7 @@ vars:
   COVERAGE_THRESHOLD: '95'
   GOOSE: '{{.BIN_DIR}}/goose'
 
-  MODULES: order inventory payment
+  MODULES: order inventory payment assembly
 
 tasks:
   formatters:install:
@@ -190,7 +190,7 @@ tasks:
     desc: "Запускает unit-тесты с race-детектором"
     cmds:
       - |
-        for mod in order inventory payment; do
+        for mod in order inventory payment assembly; do
           echo "=== $mod ==="
           (cd "$mod" && go test -v -race -count=1 $(go list ./... | grep -E '/(api|service)/.*tests?$' | grep -v '/mocks'))
         done
@@ -207,7 +207,7 @@ tasks:
     deps: [coverage:clean]
     cmds:
       - |
-        for mod in order inventory payment; do
+        for mod in order inventory payment assembly; do
           echo "=== $mod ==="
           (
             cd "$mod"
@@ -223,7 +223,7 @@ tasks:
       - echo "📊 Объединяем отчёты покрытия..."
       - |
         head -1 {{.COVERAGE_DIR}}/order.out > {{.COVERAGE_FILE}}
-        for f in {{.COVERAGE_DIR}}/order.out {{.COVERAGE_DIR}}/inventory.out {{.COVERAGE_DIR}}/payment.out; do
+        for f in {{.COVERAGE_DIR}}/order.out {{.COVERAGE_DIR}}/inventory.out {{.COVERAGE_DIR}}/payment.out {{.COVERAGE_DIR}}/assembly.out; do
           tail -n +2 "$f" >> {{.COVERAGE_FILE}}
         done
       - echo "📊 Покрытие по функциям:"

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+
 	"github.com/krapagen/my_microservices_rocket/assembly/internal/model"
 )
 

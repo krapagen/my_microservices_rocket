@@ -226,7 +226,8 @@ func (d *diContainer) AssemblyConsumerService(ctx context.Context) assemblyConsu
 // OrderService возвращает сервис бизнес-логики заказов
 func (d *diContainer) OrderService(ctx context.Context) orderApi.OrderService {
 	if d.svc == nil {
-		d.svc = orderService.New(d.OrderRepository(ctx),
+		d.svc = orderService.New(
+			d.OrderRepository(ctx),
 			d.InventoryClient(),
 			d.PaymentClient(),
 			d.OrderPaidProducerService(),

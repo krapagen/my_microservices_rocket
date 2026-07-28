@@ -4,11 +4,12 @@ import (
 	"context"
 	"log/slog"
 
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/timestamppb"
+
 	"github.com/krapagen/my_microservices_rocket/assembly/internal/model"
 	"github.com/krapagen/my_microservices_rocket/platform/pkg/kafka"
 	eventsv1 "github.com/krapagen/my_microservices_rocket/shared/pkg/proto/events/v1"
-	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type service struct {
@@ -22,7 +23,6 @@ func NewService(assembledProducer Producer) ProducerService {
 }
 
 func (s *service) ProduceShipAssembled(ctx context.Context, event model.ShipAssembled) error {
-
 	msg := &eventsv1.ShipAssembled{
 		EventUuid:    event.EventUUID.String(),
 		OrderUuid:    event.OrderUUID.String(),
