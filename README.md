@@ -30,7 +30,7 @@ flowchart TB
     order -->|order.paid| kafka
     kafka -->|order.paid| assembly
     assembly -->|assembly.ship-assembled| kafka
-    kafka -->|ship assembled| order
+    kafka -->|assembly.ship-assembled| order
 ```
 
 </div>
