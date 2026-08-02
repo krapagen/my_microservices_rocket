@@ -17,6 +17,7 @@ import (
 	inventoryRepository "github.com/krapagen/my_microservices_rocket/inventory/internal/repository/part"
 	"github.com/krapagen/my_microservices_rocket/inventory/internal/service/application/part"
 	"github.com/krapagen/my_microservices_rocket/platform/pkg/closer"
+	authv1 "github.com/krapagen/my_microservices_rocket/shared/pkg/proto/auth/v1"
 	inventoryv1 "github.com/krapagen/my_microservices_rocket/shared/pkg/proto/inventory/v1"
 )
 
@@ -72,7 +73,7 @@ type diContainer struct {
 	inventoryV1Handler inventoryv1.InventoryServiceServer
 
 	// Клиент с IAM-сервисом
-	iamClient iamv1.Client
+	iamClient *iamv1.Client
 }
 
 // PGPool возвращает пул подключений к PostgreSQL
@@ -139,7 +140,7 @@ func (d *diContainer) InventoryV1API(ctx context.Context) inventoryv1.InventoryS
 	return d.inventoryV1Handler
 }
 
-func (d *diContainer) IAMClient(_ context.Context) iamv1.Client {
+func (d *diContainer) IAMClient(_ context.Context) *iamv1.Client {
 	if d.iamClient == nil {
 		conn, err := grpc.NewClient(
 			config.AppConfig().IAM.Addr(),
@@ -154,7 +155,7 @@ func (d *diContainer) IAMClient(_ context.Context) iamv1.Client {
 			return conn.Close()
 		})
 
-		d.iamClient = iamv1.New(conn)
+		d.iamClient = iamv1.New(authv1.NewAuthServiceClient(conn))
 	}
 	return d.iamClient
 }

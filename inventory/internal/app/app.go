@@ -138,7 +138,7 @@ func (a *App) initGRPCServer(ctx context.Context) {
 		}),
 		grpc.ChainUnaryInterceptor(
 			interceptor.ErrorInterceptor,
-			interceptor.GRPCAuth(a.diContainer.IAMClient(ctx)),
+			interceptor.Auth(a.diContainer.IAMClient(ctx)),
 		),
 	)
 
