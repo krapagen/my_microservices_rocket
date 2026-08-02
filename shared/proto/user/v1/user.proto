@@ -5,7 +5,7 @@ package user.v1;
 
 import "common/v1/common.proto";
 
-option go_package = "github.com/student/shared/pkg/proto/user/v1;userv1";
+option go_package = "github.com/krapagen/my_microservices_rocket/shared/pkg/proto/user/v1;userv1";
 
 // UserService сервис управления пользователями (регистрация, получение).
 service UserService {
