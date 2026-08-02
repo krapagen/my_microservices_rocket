@@ -13,6 +13,7 @@ import (
 	errs "github.com/krapagen/my_microservices_rocket/order/internal/errors"
 	"github.com/krapagen/my_microservices_rocket/order/internal/model"
 	"github.com/krapagen/my_microservices_rocket/order/internal/service/input"
+	"github.com/krapagen/my_microservices_rocket/platform/pkg/auth"
 )
 
 func (s *service) Create(ctx context.Context, in input.CreateOrderInput) (model.Order, error) {
@@ -68,9 +69,13 @@ func (s *service) Create(ctx context.Context, in input.CreateOrderInput) (model.
 		})
 		log.InfoContext(ctx, "Деталь добавлена в заказ", "part.Name", part.Name, "part.UUID", part.UUID, "part.PartType", part.PartType, "part.Price", part.Price)
 	}
-
+	userUUID, ok := auth.UserUUIDFromContext(ctx)
+	if !ok {
+		log.ErrorContext(ctx, "не удалось получить UUID пользователя из контекста")
+		return model.Order{}, fmt.Errorf("получить UUID пользователя: %w", errs.ErrUnauthorized)
+	}
 	order := model.Order{
-		UserUUID:  in.UserUUID,
+		UserUUID:  userUUID,
 		UUID:      uuid.New(),
 		Items:     items,
 		Status:    model.OrderStatusPendingPayment,

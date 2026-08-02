@@ -8,8 +8,11 @@ import (
 	trmpgx "github.com/avito-tech/go-transaction-manager/drivers/pgxv5/v2"
 	"github.com/avito-tech/go-transaction-manager/trm/v2/manager"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 
 	inventoryApi "github.com/krapagen/my_microservices_rocket/inventory/internal/api/inventory/v1"
+	iamv1 "github.com/krapagen/my_microservices_rocket/inventory/internal/client/grpc/iam/v1"
 	"github.com/krapagen/my_microservices_rocket/inventory/internal/config"
 	inventoryRepository "github.com/krapagen/my_microservices_rocket/inventory/internal/repository/part"
 	"github.com/krapagen/my_microservices_rocket/inventory/internal/service/application/part"
@@ -67,6 +70,9 @@ type diContainer struct {
 
 	// API-обработчики
 	inventoryV1Handler inventoryv1.InventoryServiceServer
+
+	// Клиент с IAM-сервисом
+	iamClient iamv1.Client
 }
 
 // PGPool возвращает пул подключений к PostgreSQL
@@ -131,4 +137,24 @@ func (d *diContainer) InventoryV1API(ctx context.Context) inventoryv1.InventoryS
 	}
 
 	return d.inventoryV1Handler
+}
+
+func (d *diContainer) IAMClient(_ context.Context) iamv1.Client {
+	if d.iamClient == nil {
+		conn, err := grpc.NewClient(
+			config.AppConfig().IAM.Addr(),
+			grpc.WithTransportCredentials(insecure.NewCredentials()),
+		)
+		if err != nil {
+			slog.Error("не удалось подключиться к IAM", "error", err)
+			os.Exit(1)
+		}
+
+		closer.Add("IAM gRPC client", func(_ context.Context) error {
+			return conn.Close()
+		})
+
+		d.iamClient = iamv1.New(conn)
+	}
+	return d.iamClient
 }

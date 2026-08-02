@@ -9,6 +9,7 @@ import (
 
 	"github.com/krapagen/my_microservices_rocket/assembly/internal/model"
 	"github.com/krapagen/my_microservices_rocket/platform/pkg/kafka"
+	kafkamw "github.com/krapagen/my_microservices_rocket/platform/pkg/middleware/kafka"
 	eventsv1 "github.com/krapagen/my_microservices_rocket/shared/pkg/proto/events/v1"
 )
 
@@ -38,7 +39,8 @@ func (s *service) ProduceShipAssembled(ctx context.Context, event model.ShipAsse
 	}
 
 	return s.assembledProducer.Send(ctx, &kafka.Message{
-		Key:   []byte(event.EventUUID.String()),
-		Value: payload,
+		Key:     []byte(event.EventUUID.String()),
+		Value:   payload,
+		Headers: kafkamw.ProducerSessionHeaders(ctx),
 	})
 }

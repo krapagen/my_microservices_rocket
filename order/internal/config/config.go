@@ -14,6 +14,7 @@ type config struct {
 	Logger                loggerConfig                `yaml:"logger"`
 	InventoryClient       inventoryClientConfig       `yaml:"inventory_client"`
 	PaymentClient         paymentClientConfig         `yaml:"payment_client"`
+	IAMClient             iamClientConfig             `yaml:"iam_client"`
 	Kafka                 kafkaConfig                 `yaml:"kafka"`
 	OrderPaidProducer     orderPaidProducerConfig     `yaml:"order_paid_producer"`
 	ShipAssembledConsumer shipAssembledConsumerConfig `yaml:"ship_assembled_consumer"`

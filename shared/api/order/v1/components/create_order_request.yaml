@@ -2,7 +2,6 @@ type: object
 required:
   - hull_uuid
   - engine_uuid
-  - user_uuid
 properties:
   hull_uuid:
     type: string
@@ -25,10 +24,4 @@ properties:
     format: uuid
     nullable: true
     description: UUID вооружения (опциональный, v4)
-    example: "550e8400-e29b-41d4-a716-446655440006"
-  user_uuid:
-    type: string
-    format: uuid
-    nullable: true
-    description: UUID пользователя (обязательный, v4)
     example: "550e8400-e29b-41d4-a716-446655440006"

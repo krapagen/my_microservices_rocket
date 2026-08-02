@@ -11,6 +11,7 @@ import (
 	"github.com/krapagen/my_microservices_rocket/assembly/internal/service/assembly"
 	"github.com/krapagen/my_microservices_rocket/platform/pkg/kafka/consumer"
 	"github.com/krapagen/my_microservices_rocket/platform/pkg/kafka/producer"
+	kafkamw "github.com/krapagen/my_microservices_rocket/platform/pkg/middleware/kafka"
 )
 
 // Config holds test configuration for the assembly application.
@@ -38,6 +39,7 @@ func New(syncProducer sarama.SyncProducer, consumerGroup sarama.ConsumerGroup, c
 	orderPaidConsumer := consumer.NewConsumer(
 		consumerGroup,
 		[]string{cfg.OrderPaidTopic},
+		consumer.WithMiddlewares(kafkamw.ConsumerSession()),
 	)
 	shipAssembledProducer := producer.NewProducer(
 		syncProducer,

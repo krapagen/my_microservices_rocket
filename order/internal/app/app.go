@@ -16,6 +16,7 @@ import (
 
 	orderv1API "github.com/krapagen/my_microservices_rocket/order/internal/api/order/v1"
 	"github.com/krapagen/my_microservices_rocket/order/internal/config"
+	"github.com/krapagen/my_microservices_rocket/order/internal/middleware"
 	"github.com/krapagen/my_microservices_rocket/platform/pkg/closer"
 	"github.com/krapagen/my_microservices_rocket/platform/pkg/logger"
 	orderv1 "github.com/krapagen/my_microservices_rocket/shared/pkg/openapi/order/v1"
@@ -115,8 +116,8 @@ func (a *App) initDeps(ctx context.Context) {
 		a.initDI,
 		a.initLogger,
 		a.initListener,
-		a.initInventoryClient,
 		a.initPaymentClient,
+		a.initIAMClient,
 		a.initHTTPServer,
 	}
 
@@ -146,14 +147,14 @@ func (a *App) initListener(_ context.Context) {
 	a.listener = listener
 }
 
-func (a *App) initInventoryClient(_ context.Context) {
-	// Создать gRPC соединение с InventoryService
-	a.diContainer.inventoryConn = initGRPCClient(config.AppConfig().InventoryClient.Address, "InventoryService")
-}
-
 func (a *App) initPaymentClient(_ context.Context) {
 	// Создать gRPC соединение с PaymentService
 	a.diContainer.paymentConn = initGRPCClient(config.AppConfig().PaymentClient.Address, "PaymentService")
+}
+
+func (a *App) initIAMClient(_ context.Context) {
+	// Создать gRPC соединение с IAM-сервисом
+	a.diContainer.iamConn = initGRPCClient(config.AppConfig().IAMClient.Addr(), "IAMService")
 }
 
 // initHTTPServer создаёт и настраивает HTTP-сервер, регистрирует обработчики
@@ -169,8 +170,11 @@ func (a *App) initHTTPServer(ctx context.Context) {
 		slog.Error("ошибка создания зависимостей приложения", "error", err)
 		return
 	}
+
+	authHandler := middleware.HTTPAuth(a.diContainer.AuthClient())(server)
+
 	a.httpServer = &http.Server{
-		Handler:           server,
+		Handler:           authHandler,
 		ReadHeaderTimeout: httpReadHeaderTimeout, // Защита от Slowloris атаки
 		ReadTimeout:       httpReadTimeout,       // Лимит на чтение всего запроса
 		WriteTimeout:      httpWriteTimeout,      // Лимит на запись ответа

@@ -58,8 +58,6 @@ type CreateOrderRequest struct {
 	ShieldUUID OptNilUUID `json:"shield_uuid"`
 	// UUID вооружения (опциональный, v4).
 	WeaponUUID OptNilUUID `json:"weapon_uuid"`
-	// UUID пользователя (обязательный, v4).
-	UserUUID NilUUID `json:"user_uuid"`
 }
 
 // GetHullUUID returns the value of HullUUID.
@@ -82,11 +80,6 @@ func (s *CreateOrderRequest) GetWeaponUUID() OptNilUUID {
 	return s.WeaponUUID
 }
 
-// GetUserUUID returns the value of UserUUID.
-func (s *CreateOrderRequest) GetUserUUID() NilUUID {
-	return s.UserUUID
-}
-
 // SetHullUUID sets the value of HullUUID.
 func (s *CreateOrderRequest) SetHullUUID(val uuid.UUID) {
 	s.HullUUID = val
@@ -105,11 +98,6 @@ func (s *CreateOrderRequest) SetShieldUUID(val OptNilUUID) {
 // SetWeaponUUID sets the value of WeaponUUID.
 func (s *CreateOrderRequest) SetWeaponUUID(val OptNilUUID) {
 	s.WeaponUUID = val
-}
-
-// SetUserUUID sets the value of UserUUID.
-func (s *CreateOrderRequest) SetUserUUID(val NilUUID) {
-	s.UserUUID = val
 }
 
 // Ref: #
@@ -181,51 +169,6 @@ func (*GetOrderInternalServerError) getOrderRes() {}
 type GetOrderNotFound Error
 
 func (*GetOrderNotFound) getOrderRes() {}
-
-// NewNilUUID returns new NilUUID with value set to v.
-func NewNilUUID(v uuid.UUID) NilUUID {
-	return NilUUID{
-		Value: v,
-	}
-}
-
-// NilUUID is nullable uuid.UUID.
-type NilUUID struct {
-	Value uuid.UUID
-	Null  bool
-}
-
-// SetTo sets value to v.
-func (o *NilUUID) SetTo(v uuid.UUID) {
-	o.Null = false
-	o.Value = v
-}
-
-// IsNull returns true if value is Null.
-func (o NilUUID) IsNull() bool { return o.Null }
-
-// SetToNull sets value to null.
-func (o *NilUUID) SetToNull() {
-	o.Null = true
-	var v uuid.UUID
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o NilUUID) Get() (v uuid.UUID, ok bool) {
-	if o.Null {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o NilUUID) Or(d uuid.UUID) uuid.UUID {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
 
 // NewOptNilPaymentMethod returns new OptNilPaymentMethod with value set to v.
 func NewOptNilPaymentMethod(v PaymentMethod) OptNilPaymentMethod {

@@ -29,6 +29,9 @@ func ErrorInterceptor(
 	if err == nil {
 		return resp, nil
 	}
+	if _, ok := status.FromError(err); ok {
+		return nil, err
+	}
 	switch {
 	case errors.Is(err, errs.ErrPartNotFound):
 		return nil, status.Error(codes.NotFound, err.Error())

@@ -35,9 +35,12 @@ func mapError(err error) (int, string) {
 	var decodeRequest *ogenerrors.DecodeRequestError
 
 	switch {
+	// 400 Bad Request
 	case errors.As(err, &decodeParams), errors.As(err, &decodeRequest):
 		return http.StatusBadRequest, err.Error()
-
+	// 401 Unauthorized
+	case errors.Is(err, errs.ErrUnauthorized):
+		return http.StatusUnauthorized, err.Error()
 	// 404 Not Found
 	case errors.Is(err, errs.ErrOrderNotFound),
 		errors.Is(err, errs.ErrOrderItemNotFound),

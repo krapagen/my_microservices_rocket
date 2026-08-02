@@ -24,4 +24,7 @@ var (
 	// Ошибки совместимости деталей
 	ErrIncompatibleParts = errors.New("детали несовместимы")
 	ErrPartTypeMismatch  = errors.New("тип детали не соответствует слоту")
+
+	// Ошибки доступа
+	ErrUnauthorized = errors.New("неавторизованный доступ")
 )

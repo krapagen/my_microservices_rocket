@@ -390,18 +390,13 @@ func (s *CreateOrderRequest) encodeFields(e *jx.Encoder) {
 			s.WeaponUUID.Encode(e)
 		}
 	}
-	{
-		e.FieldStart("user_uuid")
-		s.UserUUID.Encode(e)
-	}
 }
 
-var jsonFieldsNameOfCreateOrderRequest = [5]string{
+var jsonFieldsNameOfCreateOrderRequest = [4]string{
 	0: "hull_uuid",
 	1: "engine_uuid",
 	2: "shield_uuid",
 	3: "weapon_uuid",
-	4: "user_uuid",
 }
 
 // Decode decodes CreateOrderRequest from json.
@@ -457,16 +452,6 @@ func (s *CreateOrderRequest) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"weapon_uuid\"")
 			}
-		case "user_uuid":
-			requiredBitSet[0] |= 1 << 4
-			if err := func() error {
-				if err := s.UserUUID.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"user_uuid\"")
-			}
 		default:
 			return d.Skip()
 		}
@@ -477,7 +462,7 @@ func (s *CreateOrderRequest) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00010011,
+		0b00000011,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -859,52 +844,6 @@ func (s *GetOrderNotFound) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *GetOrderNotFound) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
-// Encode encodes uuid.UUID as json.
-func (o NilUUID) Encode(e *jx.Encoder) {
-	if o.Null {
-		e.Null()
-		return
-	}
-	json.EncodeUUID(e, o.Value)
-}
-
-// Decode decodes uuid.UUID from json.
-func (o *NilUUID) Decode(d *jx.Decoder) error {
-	if o == nil {
-		return errors.New("invalid: unable to decode NilUUID to nil")
-	}
-	if d.Next() == jx.Null {
-		if err := d.Null(); err != nil {
-			return err
-		}
-
-		var v uuid.UUID
-		o.Value = v
-		o.Null = true
-		return nil
-	}
-	o.Null = false
-	v, err := json.DecodeUUID(d)
-	if err != nil {
-		return err
-	}
-	o.Value = v
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s NilUUID) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *NilUUID) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }

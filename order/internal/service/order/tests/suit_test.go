@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 
@@ -11,6 +12,7 @@ import (
 	"github.com/krapagen/my_microservices_rocket/order/internal/model"
 	"github.com/krapagen/my_microservices_rocket/order/internal/service/order"
 	"github.com/krapagen/my_microservices_rocket/order/internal/service/order/mocks"
+	"github.com/krapagen/my_microservices_rocket/platform/pkg/auth"
 )
 
 type ServiceSuite struct {
@@ -30,7 +32,7 @@ func (noopOrderPaidProducer) ProduceOrderPaid(_ context.Context, _ model.OrderPa
 }
 
 func (s *ServiceSuite) SetupTest() {
-	s.ctx = context.Background()
+	s.ctx = auth.WithUserUUID(context.Background(), uuid.New())
 	s.orderRepository = mocks.NewOrderRepository(s.T())
 	s.orderPaymentClient = mocks.NewPaymentClient(s.T())
 	s.orderInventoryClient = mocks.NewInventoryClient(s.T())
