@@ -54,13 +54,8 @@ var publicMethods = map[string]bool{
 // Если этого не сделать, ServiceB не увидит request-id — incoming автоматически
 // не попадает в outgoing. Это сделано намеренно, чтобы не пробрасывать
 // всё подряд (например, auth-токен клиента туда, куда он не должен попасть)
-// Auth — alias for GRPCAuth. Keeps the interceptor API surface short for tests and consumers that
-// don't need the transport-specific prefix.
-func Auth(iamClient iamv1.Client) grpc.UnaryServerInterceptor {
-	return GRPCAuth(iamClient)
-}
-
-func GRPCAuth(iamClient iamv1.Client) grpc.UnaryServerInterceptor {
+// Auth — gRPC unary server interceptor для аутентификации.
+func Auth(iamClient *iamv1.Client) grpc.UnaryServerInterceptor {
 	return func(
 		ctx context.Context,
 		req any,

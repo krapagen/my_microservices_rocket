@@ -56,7 +56,7 @@ func (s *stubInventoryServer) GetPart(ctx context.Context, _ *inventoryv1.GetPar
 	}, nil
 }
 
-func startStubAuth(t *testing.T, stub *stubAuthServer) iamClient.Client {
+func startStubAuth(t *testing.T, stub *stubAuthServer) *iamClient.Client {
 	t.Helper()
 	lis := bufconn.Listen(bufSize)
 	server := grpc.NewServer()
@@ -73,10 +73,10 @@ func startStubAuth(t *testing.T, stub *stubAuthServer) iamClient.Client {
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = conn.Close() })
 
-	return iamClient.NewFromClient(authv1.NewAuthServiceClient(conn))
+	return iamClient.New(authv1.NewAuthServiceClient(conn))
 }
 
-func startInventory(t *testing.T, authClient iamClient.Client) inventoryv1.InventoryServiceClient {
+func startInventory(t *testing.T, authClient *iamClient.Client) inventoryv1.InventoryServiceClient {
 	t.Helper()
 	lis := bufconn.Listen(bufSize)
 	server := grpc.NewServer(

@@ -22,7 +22,7 @@ import (
 func Interceptors(authClients ...authv1.AuthServiceClient) []grpc.ServerOption {
 	interceptors := []grpc.UnaryServerInterceptor{interceptor.ErrorInterceptor}
 	if len(authClients) > 0 && authClients[0] != nil {
-		interceptors = append(interceptors, interceptor.GRPCAuth(iamclient.NewFromClient(authClients[0])))
+		interceptors = append(interceptors, interceptor.Auth(iamclient.New(authClients[0])))
 	}
 	return []grpc.ServerOption{grpc.ChainUnaryInterceptor(interceptors...)}
 }
