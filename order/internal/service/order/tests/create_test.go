@@ -234,3 +234,59 @@ func (s *ServiceSuite) TestCreate_RepositoryError() {
 	s.ErrorIs(err, repoErr)
 	s.Equal(model.Order{}, result)
 }
+
+func (s *ServiceSuite) TestCreate_IncompatibleParts() {
+	partID1 := uuid.New()
+	partID2 := uuid.New()
+	incompatibleErr := status.Error(codes.FailedPrecondition, "incompatible")
+
+	s.orderInventoryClient.EXPECT().ValidateCompatibility(mock.Anything, mock.Anything).Return(incompatibleErr)
+
+	result, err := s.service.Create(s.ctx, input.CreateOrderInput{
+		HullUUID:   partID1,
+		EngineUUID: partID2,
+	})
+	s.Error(err)
+	s.ErrorIs(err, errs.ErrIncompatibleParts)
+	s.Equal(model.Order{}, result)
+}
+
+func (s *ServiceSuite) TestCreate_PartNotFound() {
+	partID1 := uuid.New()
+	partID2 := uuid.New()
+	partUUIDs := []uuid.UUID{partID1, partID2}
+	notFoundErr := status.Error(codes.NotFound, "part not found")
+
+	s.orderInventoryClient.EXPECT().ValidateCompatibility(mock.Anything, mock.Anything).Return(nil)
+	s.orderInventoryClient.EXPECT().ReserveParts(s.ctx, partUUIDs).Return(nil)
+	s.orderInventoryClient.EXPECT().ListParts(s.ctx, partUUIDs).Return(nil, notFoundErr)
+	s.orderInventoryClient.EXPECT().ReleaseParts(s.ctx, partUUIDs).Return(nil)
+
+	result, err := s.service.Create(s.ctx, input.CreateOrderInput{
+		HullUUID:   partID1,
+		EngineUUID: partID2,
+	})
+	s.Error(err)
+	s.ErrorIs(err, errs.ErrPartNotFound)
+	s.Equal(model.Order{}, result)
+}
+
+func (s *ServiceSuite) TestCreate_PartTypeMismatch() {
+	partID1 := uuid.New()
+	partID2 := uuid.New()
+	partUUIDs := []uuid.UUID{partID1, partID2}
+	typeMismatchErr := status.Error(codes.InvalidArgument, "type mismatch")
+
+	s.orderInventoryClient.EXPECT().ValidateCompatibility(mock.Anything, mock.Anything).Return(nil)
+	s.orderInventoryClient.EXPECT().ReserveParts(s.ctx, partUUIDs).Return(nil)
+	s.orderInventoryClient.EXPECT().ListParts(s.ctx, partUUIDs).Return(nil, typeMismatchErr)
+	s.orderInventoryClient.EXPECT().ReleaseParts(s.ctx, partUUIDs).Return(nil)
+
+	result, err := s.service.Create(s.ctx, input.CreateOrderInput{
+		HullUUID:   partID1,
+		EngineUUID: partID2,
+	})
+	s.Error(err)
+	s.ErrorIs(err, errs.ErrPartTypeMismatch)
+	s.Equal(model.Order{}, result)
+}

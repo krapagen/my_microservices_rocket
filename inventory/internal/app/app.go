@@ -136,7 +136,10 @@ func (a *App) initGRPCServer(ctx context.Context) {
 			MinTime:             grpcMinPingInterval,
 			PermitWithoutStream: false,
 		}),
-		grpc.UnaryInterceptor(interceptor.ErrorInterceptor),
+		grpc.ChainUnaryInterceptor(
+			interceptor.ErrorInterceptor,
+			interceptor.GRPCAuth(a.diContainer.IAMClient(ctx)),
+		),
 	)
 
 	// Получаем API-обработчик до регистрации closer'а: ленивая инициализация

@@ -181,5 +181,3 @@ func TestOrderPaidHandler_ProduceError(t *testing.T) {
 		t.Fatalf("RunConsumer() error = %v, want %v", err, produceErr)
 	}
 }
-
-// TODO: add tests for order_paid handler

@@ -10,12 +10,15 @@ import (
 	"github.com/avito-tech/go-transaction-manager/trm/v2/manager"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 
 	orderApi "github.com/krapagen/my_microservices_rocket/order/internal/api/order/v1"
+	iamClient "github.com/krapagen/my_microservices_rocket/order/internal/client/grpc/iam/v1"
 	inventoryClient "github.com/krapagen/my_microservices_rocket/order/internal/client/grpc/inventory/v1"
 	paymentClient "github.com/krapagen/my_microservices_rocket/order/internal/client/grpc/payment/v1"
 	"github.com/krapagen/my_microservices_rocket/order/internal/config"
 	assemblyConsumer "github.com/krapagen/my_microservices_rocket/order/internal/consumer/assembly_consumer"
+	"github.com/krapagen/my_microservices_rocket/order/internal/interceptor"
 	orderProducer "github.com/krapagen/my_microservices_rocket/order/internal/producer/order_producer"
 	orderRepository "github.com/krapagen/my_microservices_rocket/order/internal/repository/order"
 	orderService "github.com/krapagen/my_microservices_rocket/order/internal/service/order"
@@ -24,6 +27,7 @@ import (
 	wrappedKafkaProducer "github.com/krapagen/my_microservices_rocket/platform/pkg/kafka/producer"
 	kafkaMiddleware "github.com/krapagen/my_microservices_rocket/platform/pkg/middleware/kafka"
 	orderv1 "github.com/krapagen/my_microservices_rocket/shared/pkg/openapi/order/v1"
+	authv1 "github.com/krapagen/my_microservices_rocket/shared/pkg/proto/auth/v1"
 	inventoryv1 "github.com/krapagen/my_microservices_rocket/shared/pkg/proto/inventory/v1"
 	paymentv1 "github.com/krapagen/my_microservices_rocket/shared/pkg/proto/payment/v1"
 )
@@ -39,12 +43,14 @@ type diContainer struct {
 	repo orderService.OrderRepository
 
 	// inventoryClient
-	inventoryConn   *grpc.ClientConn
 	inventoryClient orderService.InventoryClient
 
 	// paymentClient
 	paymentConn   *grpc.ClientConn
 	paymentClient orderService.PaymentClient
+
+	// iamClient
+	iamConn *grpc.ClientConn
 
 	// kafka producer
 	syncProducer      sarama.SyncProducer
@@ -114,10 +120,21 @@ func (d *diContainer) OrderRepository(ctx context.Context) orderService.OrderRep
 
 func (d *diContainer) InventoryClient() orderService.InventoryClient {
 	if d.inventoryClient == nil {
-		d.inventoryClient = inventoryClient.New(inventoryv1.NewInventoryServiceClient(d.inventoryConn))
+		conn, err := grpc.NewClient(
+			config.AppConfig().InventoryClient.Address,
+			grpc.WithTransportCredentials(insecure.NewCredentials()),
+			grpc.WithUnaryInterceptor(interceptor.SessionForwarder()),
+		)
+		if err != nil {
+			slog.Error("не удалось подключиться к InventoryService", "error", err)
+			os.Exit(1)
+		}
+
 		closer.Add("Inventory gRPC client", func(_ context.Context) error {
-			return d.inventoryConn.Close()
+			return conn.Close()
 		})
+
+		d.inventoryClient = inventoryClient.New(inventoryv1.NewInventoryServiceClient(conn))
 	}
 	return d.inventoryClient
 }
@@ -130,6 +147,10 @@ func (d *diContainer) PaymentClient() orderService.PaymentClient {
 		})
 	}
 	return d.paymentClient
+}
+
+func (d *diContainer) AuthClient() *iamClient.Client {
+	return iamClient.New(authv1.NewAuthServiceClient(d.iamConn))
 }
 
 func (d *diContainer) SyncProducer() sarama.SyncProducer {
@@ -203,7 +224,10 @@ func (d *diContainer) ShipAssembledConsumer() *wrappedKafkaConsumer.Consumer {
 		d.shipAssembledCons = wrappedKafkaConsumer.NewConsumer(
 			d.ConsumerGroup(),
 			[]string{config.AppConfig().ShipAssembledConsumer.ShipAssembledTopicName()},
-			wrappedKafkaConsumer.WithMiddlewares(kafkaMiddleware.ConsumerLogging()),
+			wrappedKafkaConsumer.WithMiddlewares(
+				kafkaMiddleware.ConsumerSession(),
+				kafkaMiddleware.ConsumerLogging(),
+			),
 		)
 	}
 

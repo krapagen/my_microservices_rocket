@@ -9,17 +9,22 @@ import (
 	"google.golang.org/grpc"
 
 	inventoryapi "github.com/krapagen/my_microservices_rocket/inventory/internal/api/inventory/v1"
+	iamclient "github.com/krapagen/my_microservices_rocket/inventory/internal/client/grpc/iam/v1"
 	"github.com/krapagen/my_microservices_rocket/inventory/internal/interceptor"
 	repository "github.com/krapagen/my_microservices_rocket/inventory/internal/repository/part"
 	service "github.com/krapagen/my_microservices_rocket/inventory/internal/service/application/part"
+	authv1 "github.com/krapagen/my_microservices_rocket/shared/pkg/proto/auth/v1"
 	inventoryv1 "github.com/krapagen/my_microservices_rocket/shared/pkg/proto/inventory/v1"
 )
 
-// Interceptors возвращает grpc.ServerOption для тестов
-func Interceptors() []grpc.ServerOption {
-	return []grpc.ServerOption{
-		grpc.UnaryInterceptor(interceptor.ErrorInterceptor),
+// Interceptors возвращает grpc.ServerOption для тестов.
+// Если передан auth-клиент IAM, добавляется auth-interceptor.
+func Interceptors(authClients ...authv1.AuthServiceClient) []grpc.ServerOption {
+	interceptors := []grpc.UnaryServerInterceptor{interceptor.ErrorInterceptor}
+	if len(authClients) > 0 && authClients[0] != nil {
+		interceptors = append(interceptors, interceptor.GRPCAuth(iamclient.NewFromClient(authClients[0])))
 	}
+	return []grpc.ServerOption{grpc.ChainUnaryInterceptor(interceptors...)}
 }
 
 // RegisterServices регистрирует сервисы на gRPC сервере.

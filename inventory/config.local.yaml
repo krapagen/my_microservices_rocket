@@ -12,3 +12,6 @@ pg:
 
 logger:
   level: "info"
+
+iam_client:
+  address: "localhost:50053"

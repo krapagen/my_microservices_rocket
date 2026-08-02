@@ -47,3 +47,17 @@ packages:
   github.com/krapagen/my_microservices_rocket/payment/internal/api/payment/v1:
     config:
       include-interface-regex: ".*Service"
+
+  # IAM service
+  github.com/krapagen/my_microservices_rocket/iam/internal/api/auth/v1:
+    config:
+      include-interface-regex: ".*Service"
+  github.com/krapagen/my_microservices_rocket/iam/internal/api/user/v1:
+    config:
+      include-interface-regex: ".*Service"
+  github.com/krapagen/my_microservices_rocket/iam/internal/service/iam:
+    config:
+      include-interface-regex: ".*(Repository|Service)"
+  github.com/krapagen/my_microservices_rocket/iam/internal/repository/user:
+    config:
+      include-interface-regex: ".*TxManager"

@@ -84,7 +84,10 @@ func (d *diContainer) OrderPaidConsumer() *wrappedKafkaConsumer.Consumer {
 		d.orderPaidConsumer = wrappedKafkaConsumer.NewConsumer(
 			d.ConsumerGroup(),
 			[]string{config.AppConfig().OrderPaid.OrderPaidTopicName()},
-			wrappedKafkaConsumer.WithMiddlewares(kafkaMiddleware.ConsumerLogging()),
+			wrappedKafkaConsumer.WithMiddlewares(
+				kafkaMiddleware.ConsumerSession(),
+				kafkaMiddleware.ConsumerLogging(),
+			),
 		)
 	}
 

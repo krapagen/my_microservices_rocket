@@ -1,3 +1,5 @@
+//go:build apitest
+
 package tests
 
 import (
@@ -86,9 +88,7 @@ func partStock(t *testing.T, partUUID string) int {
 }
 
 func TestDB_Order_Create_PersistsStatusAndUserUUID(t *testing.T) {
-	userUUID := uuid.New().String()
 	created, resp := createOrder(t, &CreateOrderRequest{
-		UserUUID:   userUUID,
 		HullUUID:   HullTitaniumUUID,
 		EngineUUID: EngineIonBUUID,
 		ShieldUUID: new(ShieldEnergyUUID),
@@ -100,7 +100,7 @@ func TestDB_Order_Create_PersistsStatusAndUserUUID(t *testing.T) {
 
 	assertOrderStatusInDB(t, created.OrderUUID, "PENDING_PAYMENT")
 	assertOrderItemsCount(t, created.OrderUUID, 4)
-	assertOrderUserUUID(t, created.OrderUUID, userUUID)
+	assertOrderUserUUID(t, created.OrderUUID, defaultUserUUID)
 	testutil.AssertOrderItemsTotalPrice(t, orderDBPool, created.OrderUUID, created.TotalPrice)
 }
 
@@ -309,7 +309,7 @@ func TestDB_Inventory_Stock_UnchangedByReserve(t *testing.T) {
 	stockBefore := partStock(t, partUUID)
 	require.Equal(t, 3, stockBefore)
 
-	_, err = inventoryClient.ReserveParts(context.Background(),
+	_, err = inventoryClient.ReserveParts(authCtx(context.Background()),
 		&inventoryv1.ReservePartsRequest{Uuids: []string{partUUID}})
 	require.NoError(t, err)
 

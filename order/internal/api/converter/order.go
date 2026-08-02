@@ -95,7 +95,6 @@ func extractPartUUIDs(items []model.OrderItem) (hullUUID, engineUUID, shieldUUID
 
 func CreateOrderRequestToInput(req *orderv1.CreateOrderRequest) input.CreateOrderInput {
 	orderInput := input.CreateOrderInput{
-		UserUUID:   req.UserUUID.Value,
 		HullUUID:   req.HullUUID,
 		EngineUUID: req.EngineUUID,
 	}
