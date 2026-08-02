@@ -21,12 +21,15 @@ flowchart TB
     order[Order Service\nHTTP :8080\nKafka producer/consumer]
     inventory[Inventory Service\ngRPC :50051]
     payment[Payment Service\ngRPC :50052]
+    iam[IAM Service\ngRPC :50054]
     kafka[(Kafka)]
     assembly[Assembly Service\nKafka consumer/producer]
 
     client --> order
     order -->|gRPC| inventory
     order -->|gRPC| payment
+    order -->|gRPC| iam
+    inventory -->|gRPC| iam
     order -->|order.paid| kafka
     kafka -->|order.paid| assembly
     assembly -->|assembly.ship-assembled| kafka
@@ -43,10 +46,11 @@ flowchart TB
 
 | Service       | Role                         | Protocol / Port |
 |---------------|------------------------------|-----------------|
-| **Order**     | HTTP API + Kafka producer/consumer + gRPC client | HTTP :8080 / gRPC :50051, :50052 |
+| **Order**     | HTTP API + Kafka producer/consumer + gRPC client (inventory, payment, IAM) | HTTP :8080 / gRPC :50051, :50052, :50054 |
 | **Assembly**  | Kafka consumer/producer      | Kafka only      |
 | **Inventory** | gRPC service                  | gRPC :50051     |
 | **Payment**   | gRPC service                  | gRPC :50052     |
+| **IAM**       | Authentication & session management | gRPC :50054     |
 
 ## 🗂️ Project Structure
 
@@ -56,6 +60,7 @@ my_microservices_rocket/
 ├── inventory/      # Inventory service — gRPC
 ├── payment/        # Payment service — gRPC
 ├── assembly/       # Assembly service — Kafka consumer/producer
+├── iam/            # IAM service — gRPC authentication & sessions
 ├── shared/         # Shared code: .proto definitions, OpenAPI specs, generated clients
 │   ├── proto/      # Protobuf sources (buf managed)
 │   └── api/        # OpenAPI specs
@@ -105,10 +110,9 @@ task up-core
 task run:inventory   # gRPC  :50051
 task run:payment     # gRPC  :50052
 task run:order       # HTTP  :8080
-cd assembly && go run ./cmd
+task run:assembly    # Kafka consumer/producer
+task run:iam         # gRPC  :50054
 ```
-
-`assembly` is started from its module directly; it is not wired into `Taskfile.yaml` yet.
 
 Or start everything with Docker Compose:
 
@@ -171,6 +175,11 @@ task migrate:order:status
 task migrate:inventory:up
 task migrate:inventory:down
 task migrate:inventory:status
+
+# IAM service
+task migrate:iam:up
+task migrate:iam:down
+task migrate:iam:status
 ```
 
 ## 🧹 Code Quality
@@ -193,6 +202,7 @@ task deps:update
 | `core`        | Kafka (KRaft) + Kafka UI |
 | `order`       | Order service + PostgreSQL |
 | `inventory`   | Inventory service + PostgreSQL |
+| `iam`         | IAM service + PostgreSQL + Redis |
 
 Kafka UI is available at **http://localhost:8088** (default port from `core.env`).
 
@@ -203,7 +213,7 @@ Kafka UI is available at **http://localhost:8088** (default port from `core.env`
 The project uses a [Go workspace](https://go.dev/blog/get-familiar-with-workspaces) (`go.work`) to manage multiple modules locally without publishing them:
 
 ```
-order · inventory · payment · assembly · shared · platform
+order · inventory · payment · assembly · iam · shared · platform
 ```
 
 ## 📄 License
