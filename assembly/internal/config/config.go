@@ -14,6 +14,8 @@ type config struct {
 	OrderPaid     orderPaidConsumerConfig     `yaml:"order_paid_consumer"`
 	ShipAssembled shipAssembledProducerConfig `yaml:"ship_assembled_producer"`
 	Logger        loggerConfig                `yaml:"logger"`
+	OtelConfig    otelConfig                  `yaml:"otel"`
+	Stage         string                      `yaml:"stage"`
 }
 
 var appConfig *config

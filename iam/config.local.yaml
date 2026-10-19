@@ -24,3 +24,7 @@ session:
 
 logger:
   level: "info"
+
+otel:
+  endpoint: "localhost:4317"
+  service_name: "iam-service"

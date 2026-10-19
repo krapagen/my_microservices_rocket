@@ -141,10 +141,8 @@ func TestInterceptor_InvalidSession(t *testing.T) {
 }
 
 func TestInterceptor_ValidSession(t *testing.T) {
-	const (
-		userUUID    = "11111111-1111-1111-1111-111111111111"
-		sessionUUID = "22222222-2222-2222-2222-222222222222"
-	)
+	const userUUID = "11111111-1111-1111-1111-111111111111"
+	const sessionUUID = "22222222-2222-2222-2222-222222222222"
 	authClient := startStubAuth(t, &stubAuthServer{
 		whoami: func(s string) (*authv1.WhoamiResponse, error) {
 			require.Equal(t, sessionUUID, s)

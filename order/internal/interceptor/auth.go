@@ -3,6 +3,7 @@ package interceptor
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 
@@ -15,8 +16,8 @@ import (
 func SessionForwarder() grpc.UnaryClientInterceptor {
 	return func(ctx context.Context, method string, req, reply any, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
 		sessionUUID, ok := auth.SessionUUIDFromContext(ctx)
-		if ok && sessionUUID != "" {
-			ctx = metadata.AppendToOutgoingContext(ctx, "session-uuid", sessionUUID)
+		if ok && sessionUUID != uuid.Nil {
+			ctx = metadata.AppendToOutgoingContext(ctx, "session-uuid", sessionUUID.String())
 		}
 
 		return invoker(ctx, method, req, reply, cc, opts...)

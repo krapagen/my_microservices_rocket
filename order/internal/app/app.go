@@ -10,6 +10,8 @@ import (
 	"syscall"
 	"time"
 
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/keepalive"
@@ -19,6 +21,8 @@ import (
 	"github.com/krapagen/my_microservices_rocket/order/internal/middleware"
 	"github.com/krapagen/my_microservices_rocket/platform/pkg/closer"
 	"github.com/krapagen/my_microservices_rocket/platform/pkg/logger"
+	"github.com/krapagen/my_microservices_rocket/platform/pkg/metrics"
+	"github.com/krapagen/my_microservices_rocket/platform/pkg/tracing"
 	orderv1 "github.com/krapagen/my_microservices_rocket/shared/pkg/openapi/order/v1"
 )
 
@@ -56,6 +60,7 @@ func initGRPCClient(address, service string) *grpc.ClientConn {
 	conn, err := grpc.NewClient(
 		address,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithStatsHandler(otelgrpc.NewClientHandler()),
 		grpc.WithKeepaliveParams(keepalive.ClientParameters{
 			Time:                grpcKeepaliveTime,
 			Timeout:             grpcKeepaliveTimeout,
@@ -115,6 +120,8 @@ func (a *App) initDeps(ctx context.Context) {
 	inits := []func(context.Context){
 		a.initDI,
 		a.initLogger,
+		a.initMetrics,
+		a.initTracer,
 		a.initListener,
 		a.initPaymentClient,
 		a.initIAMClient,
@@ -133,7 +140,43 @@ func (a *App) initDI(_ context.Context) {
 
 // initLogger настраивает глобальный slog с уровнем из конфига
 func (a *App) initLogger(_ context.Context) {
-	logger.Init(config.AppConfig().Logger.Level)
+	logger.Init(logger.Config{
+		Level:             config.AppConfig().Logger.Level,
+		ServiceName:       config.AppConfig().OtelConfig.ServiceName,
+		Environment:       config.AppConfig().Stage,
+		EnableOTLP:        true,
+		CollectorEndpoint: config.AppConfig().OtelConfig.Endpoint,
+	})
+	closer.Add("logger", func(ctx context.Context) error {
+		return logger.Close()
+	})
+}
+
+// initMetrics создаёт OTel MeterProvider с OTLP-экспортером и регистрирует его глобально.
+// Адрес коллектора экспортер читает сам из env OTEL_EXPORTER_OTLP_ENDPOINT
+func (a *App) initMetrics(_ context.Context) {
+	metrics.Init(config.AppConfig().OtelConfig.ServiceName)
+	closer.Add("metrics", func(ctx context.Context) error {
+		return metrics.Close()
+	})
+}
+
+// initTracer создаёт OTel TracerProvider с OTLP-экспортером и регистрирует его глобально.
+// Вместе с ним устанавливается propagator (W3C TraceContext + Baggage) —
+// без него trace context не передавался бы между сервисами через gRPC metadata
+func (a *App) initTracer(ctx context.Context) {
+	shutdown, err := tracing.InitTracer(ctx, tracing.Config{
+		CollectorEndpoint: config.AppConfig().OtelConfig.Endpoint,
+		ServiceName:       config.AppConfig().OtelConfig.ServiceName,
+		Environment:       config.AppConfig().Stage,
+	})
+	if err != nil {
+		slog.Error("не удалось инициализировать трейсер", "error", err)
+		return
+	}
+	closer.Add("tracer", func(ctx context.Context) error {
+		return shutdown(ctx)
+	})
 }
 
 // initListener создаёт TCP-листенер для http-сервера
@@ -173,8 +216,12 @@ func (a *App) initHTTPServer(ctx context.Context) {
 
 	authHandler := middleware.HTTPAuth(a.diContainer.AuthClient())(server)
 
+	// otelhttp — автоматические span'ы и метрики http_server_request_duration_seconds
+	// для каждого HTTP-запроса; оборачивает всю цепочку, включая auth
+	tracedHandler := otelhttp.NewHandler(authHandler, config.AppConfig().OtelConfig.ServiceName)
+
 	a.httpServer = &http.Server{
-		Handler:           authHandler,
+		Handler:           tracedHandler,
 		ReadHeaderTimeout: httpReadHeaderTimeout, // Защита от Slowloris атаки
 		ReadTimeout:       httpReadTimeout,       // Лимит на чтение всего запроса
 		WriteTimeout:      httpWriteTimeout,      // Лимит на запись ответа

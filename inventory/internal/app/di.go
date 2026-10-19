@@ -8,6 +8,7 @@ import (
 	trmpgx "github.com/avito-tech/go-transaction-manager/drivers/pgxv5/v2"
 	"github.com/avito-tech/go-transaction-manager/trm/v2/manager"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
@@ -145,6 +146,7 @@ func (d *diContainer) IAMClient(_ context.Context) *iamv1.Client {
 		conn, err := grpc.NewClient(
 			config.AppConfig().IAM.Addr(),
 			grpc.WithTransportCredentials(insecure.NewCredentials()),
+			grpc.WithStatsHandler(otelgrpc.NewClientHandler()),
 		)
 		if err != nil {
 			slog.Error("не удалось подключиться к IAM", "error", err)

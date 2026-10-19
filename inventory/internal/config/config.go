@@ -9,10 +9,12 @@ import (
 )
 
 type config struct {
-	GRPC   grpcConfig      `yaml:"grpc"`
-	PG     pgConfig        `yaml:"pg"`
-	Logger loggerConfig    `yaml:"logger"`
-	IAM    IAMClientConfig `yaml:"iam_client"`
+	GRPC       grpcConfig      `yaml:"grpc"`
+	PG         pgConfig        `yaml:"pg"`
+	Logger     loggerConfig    `yaml:"logger"`
+	IAM        IAMClientConfig `yaml:"iam_client"`
+	OtelConfig otelConfig      `yaml:"otel"`
+	Stage      string          `yaml:"stage"`
 }
 
 var appConfig *config

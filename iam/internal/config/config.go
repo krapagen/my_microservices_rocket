@@ -9,11 +9,13 @@ import (
 )
 
 type config struct {
-	GRPC    grpcConfig    `yaml:"grpc"`
-	PG      pgConfig      `yaml:"pg"`
-	Logger  loggerConfig  `yaml:"logger"`
-	Redis   redisConfig   `yaml:"redis"`
-	Session sessionConfig `yaml:"session"`
+	GRPC       grpcConfig    `yaml:"grpc"`
+	PG         pgConfig      `yaml:"pg"`
+	Logger     loggerConfig  `yaml:"logger"`
+	Redis      redisConfig   `yaml:"redis"`
+	Session    sessionConfig `yaml:"session"`
+	OtelConfig otelConfig    `yaml:"otel"`
+	Stage      string        `yaml:"stage"`
 }
 
 var appConfig *config

@@ -20,9 +20,9 @@ type App struct {
 }
 
 // New создаёт и инициализирует приложение.
-func New(_ context.Context) *App {
+func New(ctx context.Context) *App {
 	a := &App{}
-	a.initDeps()
+	a.initDeps(ctx)
 	return a
 }
 
@@ -59,9 +59,26 @@ func (a *App) Run() error {
 	return runErr
 }
 
-func (a *App) initDeps() {
+func (a *App) initDeps(ctx context.Context) {
+	a.initDI(ctx)
+	a.initLogger(ctx)
+}
+
+func (a *App) initDI(_ context.Context) {
 	a.diContainer = &diContainer{}
-	logger.Init(config.AppConfig().Logger.Level)
+}
+
+func (a *App) initLogger(_ context.Context) {
+	logger.Init(logger.Config{
+		Level:             config.AppConfig().Logger.Level,
+		ServiceName:       config.AppConfig().OtelConfig.ServiceName,
+		Environment:       config.AppConfig().Stage,
+		EnableOTLP:        true,
+		CollectorEndpoint: config.AppConfig().OtelConfig.Endpoint,
+	})
+	closer.Add("logger", func(ctx context.Context) error {
+		return logger.Close()
+	})
 }
 
 func (a *App) runConsumer(ctx context.Context) error {

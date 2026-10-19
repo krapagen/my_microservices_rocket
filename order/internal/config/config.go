@@ -18,6 +18,8 @@ type config struct {
 	Kafka                 kafkaConfig                 `yaml:"kafka"`
 	OrderPaidProducer     orderPaidProducerConfig     `yaml:"order_paid_producer"`
 	ShipAssembledConsumer shipAssembledConsumerConfig `yaml:"ship_assembled_consumer"`
+	OtelConfig            otelConfig                  `yaml:"otel"`
+	Stage                 string                      `yaml:"stage"`
 }
 
 var appConfig *config

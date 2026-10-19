@@ -14,3 +14,7 @@ order_paid_consumer:
 
 ship_assembled_producer:
   topic: "assembly.ship-assembled"
+
+otel:
+  endpoint: "localhost:4317"
+  service_name: "assembly-service"

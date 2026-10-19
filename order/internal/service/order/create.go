@@ -7,6 +7,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	otelcodes "go.opentelemetry.io/otel/codes"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
@@ -16,9 +19,29 @@ import (
 	"github.com/krapagen/my_microservices_rocket/platform/pkg/auth"
 )
 
-func (s *service) Create(ctx context.Context, in input.CreateOrderInput) (model.Order, error) {
+func (s *service) Create(ctx context.Context, in input.CreateOrderInput) (res model.Order, err error) {
 	op := "order/internal/service/order/Create"
 	log := slog.With("op", op)
+
+	// Ручной спан бизнес-операции — родитель для всех gRPC-вызовов внутри.
+	// Прокидываем обёрнутый ctx дальше только если спан реально записывается
+	// (при отсутствии TracerProvider — например, в unit-тестах — ctx не меняется)
+	spanCtx, span := otel.Tracer("order-service").Start(ctx, "order.Create")
+	defer span.End()
+	if span.IsRecording() {
+		ctx = spanCtx
+	}
+	span.SetAttributes(
+		attribute.Stringer("order.hull_uuid", in.HullUUID),
+		attribute.Stringer("order.engine_uuid", in.EngineUUID),
+	)
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(otelcodes.Error, err.Error())
+		}
+	}()
+
 	if (in.HullUUID == uuid.Nil) || (in.EngineUUID == uuid.Nil) {
 		log.ErrorContext(ctx, "не указаны обязательные детали", "HullUUID", in.HullUUID, "EngineUUID", in.EngineUUID)
 		return model.Order{}, fmt.Errorf("не указаны обязательные детали: %w", errs.ErrMissingRequiredParts)
@@ -89,6 +112,16 @@ func (s *service) Create(ctx context.Context, in input.CreateOrderInput) (model.
 		return model.Order{}, fmt.Errorf("создать заказ: %w", err)
 	}
 	log.InfoContext(ctx, "Заказ успешно создан", "order.UUID", order.UUID, "order.Status", order.Status, "order.CreatedAt", order.CreatedAt)
+
+	ordersCreatedTotal.Add(ctx, 1)
+
+	span.SetAttributes(
+		attribute.Stringer("order.uuid", order.UUID),
+		attribute.Int("order.items_count", len(order.Items)),
+		attribute.Int64("order.total_price", order.TotalPrice()),
+	)
+	span.SetStatus(otelcodes.Ok, "")
+
 	return order, nil
 }
 

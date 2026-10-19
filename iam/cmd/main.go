@@ -11,8 +11,8 @@ import (
 )
 
 func main() {
-	// Загружаем переменные окружения из inventory.env (если файл существует)
-	err := godotenv.Load("../inventory.env")
+	// Загружаем переменные окружения из iam.env (если файл существует)
+	err := godotenv.Load("../iam.env")
 	if err != nil {
 		slog.Warn("ошибка загрузки переменных из окружения .env", "error", err)
 	}
