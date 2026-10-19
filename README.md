@@ -21,7 +21,7 @@ flowchart TB
     order[Order Service\nHTTP :8080\nKafka producer/consumer]
     inventory[Inventory Service\ngRPC :50051]
     payment[Payment Service\ngRPC :50052]
-    iam[IAM Service\ngRPC :50054]
+    iam[IAM Service\ngRPC :50053]
     kafka[(Kafka)]
     assembly[Assembly Service\nKafka consumer/producer]
 
@@ -46,11 +46,11 @@ flowchart TB
 
 | Service       | Role                         | Protocol / Port |
 |---------------|------------------------------|-----------------|
-| **Order**     | HTTP API + Kafka producer/consumer + gRPC client (inventory, payment, IAM) | HTTP :8080 / gRPC :50051, :50052, :50054 |
+| **Order**     | HTTP API + Kafka producer/consumer + gRPC client (inventory, payment, IAM) | HTTP :8080 / gRPC :50051, :50052, :50053 |
 | **Assembly**  | Kafka consumer/producer      | Kafka only      |
 | **Inventory** | gRPC service                  | gRPC :50051     |
 | **Payment**   | gRPC service                  | gRPC :50052     |
-| **IAM**       | Authentication & session management | gRPC :50054     |
+| **IAM**       | Authentication & session management | gRPC :50053     |
 
 ## 🗂️ Project Structure
 
@@ -82,6 +82,7 @@ my_microservices_rocket/
 - **Code generation:** `buf` (proto) · `ogen` (OpenAPI)
 - **Linting / Formatting:** `golangci-lint` · `gofumpt` · `gci`
 - **Task runner:** `task` (Taskfile)
+- **Observability:** OpenTelemetry (OTLP gRPC) · OTel Collector · Jaeger (трейсы) · Prometheus + Grafana (метрики) · Elasticsearch + Kibana (логи)
 
 ## 🚀 Getting Started
 
@@ -97,11 +98,13 @@ my_microservices_rocket/
 task setup
 ```
 
-### 2. Start infrastructure (Kafka)
+### 2. Start infrastructure (Kafka + Observability)
 
 ```bash
 task up-core
 ```
+
+Поднимает Kafka и весь observability-стек: OTel Collector, Jaeger, Prometheus, Grafana, Elasticsearch, Kibana.
 
 ### 3. Run services
 
@@ -111,7 +114,7 @@ task run:inventory   # gRPC  :50051
 task run:payment     # gRPC  :50052
 task run:order       # HTTP  :8080
 task run:assembly    # Kafka consumer/producer
-task run:iam         # gRPC  :50054
+task run:iam         # gRPC  :50053
 ```
 
 Or start everything with Docker Compose:
@@ -200,6 +203,7 @@ task deps:update
 | Compose stack | Contents |
 |---------------|----------|
 | `core`        | Kafka (KRaft) + Kafka UI |
+| `observability` | OTel Collector + Jaeger + Prometheus + Grafana + Elasticsearch + Kibana + `es-init` (создаёт data stream `otel-logs`) |
 | `order`       | Order service + PostgreSQL |
 | `inventory`   | Inventory service + PostgreSQL |
 | `iam`         | IAM service + PostgreSQL + Redis |
@@ -207,6 +211,27 @@ task deps:update
 Kafka UI is available at **http://localhost:8088** (default port from `core.env`).
 
 `payment` and `assembly` are run from source, not via Docker Compose.
+
+## 📊 Observability
+
+Все сервисы экспортируют телеметрию по OTLP gRPC в OTel Collector (`localhost:4317`), который маршрутизирует:
+
+| Сигнал | Хранилище | UI |
+|--------|-----------|-----|
+| Трейсы | Jaeger (OTLP) | http://localhost:16686 |
+| Метрики | Prometheus (Remote Write) | http://localhost:9090 / Grafana http://localhost:3000 (admin/admin) |
+| Логи | Elasticsearch (data stream `otel-logs`, ECS mapping) | Kibana http://localhost:5601 |
+
+Что подключено:
+
+- **`tracing.InitTracer`** в `app.go` каждого сервиса — TracerProvider + W3C TraceContext propagator для сквозных трейсов
+- **`otelgrpc`** stats handlers на gRPC-серверах и клиентах — автоматические span'ы на каждый вызов
+- **`otelhttp`** middleware на HTTP-сервере Order — спаны + метрики `http_server_request_duration_seconds`
+- **Бизнес-метрики OrderService**: `orders_created_total`, `orders_paid_total`, `orders_revenue_total` (сумма в копейках)
+- **Кастомные спаны** `order.Create` / `order.Pay` с атрибутами заказа и запиcью ошибок
+- **Логи в ECS-формате** с `trace.id`/`span.id` — корреляция лог ↔ трейс в Kibana/Jaeger
+
+> Для работы логов нужен data stream `otel-logs` — его создаёт one-shot контейнер `es-init` (запускается автоматически через `task up-core`).
 
 ## 📦 Go Workspace
 
