@@ -42,7 +42,13 @@ func HTTPAuth(authClient iamClient) func(http.Handler) http.Handler {
 				return
 			}
 
-			ctx := auth.WithSessionUUID(r.Context(), sessionUUID)
+			sessionUUIDParsed, err := uuid.Parse(sessionUUID)
+			if err != nil {
+				http.Error(w, "недействительный session-uuid", http.StatusUnauthorized)
+				return
+			}
+
+			ctx := auth.WithSessionUUID(r.Context(), sessionUUIDParsed)
 			ctx = auth.WithUserUUID(ctx, userUUID)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})

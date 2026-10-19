@@ -4,3 +4,7 @@ grpc:
 
 logger:
   level: "info"
+
+otel:
+  endpoint: "localhost:4317"
+  service_name: "payment-service"

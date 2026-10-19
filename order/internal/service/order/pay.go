@@ -6,6 +6,9 @@ import (
 	"log/slog"
 
 	"github.com/google/uuid"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	otelcodes "go.opentelemetry.io/otel/codes"
 
 	errs "github.com/krapagen/my_microservices_rocket/order/internal/errors"
 	"github.com/krapagen/my_microservices_rocket/order/internal/model"
@@ -14,7 +17,22 @@ import (
 func (s *service) Pay(ctx context.Context, orderUUID uuid.UUID, method model.PaymentMethod) (uuid.UUID, error) {
 	op := "order/internal/service/order/Pay"
 	log := slog.With("op", op)
-	var transactionUUID uuid.UUID
+	var (
+		transactionUUID uuid.UUID
+		paidTotal       int64
+	)
+
+	// Ручной спан бизнес-операции — родитель для gRPC-вызова PaymentService.
+	// Прокидываем обёрнутый ctx дальше только если спан реально записывается
+	spanCtx, span := otel.Tracer("order-service").Start(ctx, "order.Pay")
+	defer span.End()
+	if span.IsRecording() {
+		ctx = spanCtx
+	}
+	span.SetAttributes(
+		attribute.Stringer("order.uuid", orderUUID),
+		attribute.String("order.payment_method", string(method)),
+	)
 
 	err := s.txManager.Do(ctx, func(txCtx context.Context) error {
 		// 1. Читаем заказ в транзакции
@@ -53,6 +71,8 @@ func (s *service) Pay(ctx context.Context, orderUUID uuid.UUID, method model.Pay
 		order.TransactionUUID = &transactionUUID
 		order.PaymentMethod = &method
 
+		paidTotal = order.TotalPrice()
+
 		err = s.orderRepo.Update(txCtx, order)
 		if err != nil {
 			log.ErrorContext(txCtx, "Не удалось обновить заказ после оплаты", "orderUUID", orderUUID, "error", err)
@@ -72,9 +92,17 @@ func (s *service) Pay(ctx context.Context, orderUUID uuid.UUID, method model.Pay
 		return nil
 	})
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(otelcodes.Error, err.Error())
 		log.ErrorContext(ctx, "Ошибка при оплате заказа", "orderUUID", orderUUID, "method", method, "error", err)
 		return uuid.Nil, err
 	}
+	span.SetAttributes(attribute.Stringer("order.transaction_uuid", transactionUUID))
+	span.SetStatus(otelcodes.Ok, "")
 	log.InfoContext(ctx, "Оплата заказа успешно завершена", "orderUUID", orderUUID, "method", method, "transactionUUID", transactionUUID)
+
+	ordersPaidTotal.Add(ctx, 1)
+	ordersRevenueTotal.Add(ctx, paidTotal)
+
 	return transactionUUID, nil
 }

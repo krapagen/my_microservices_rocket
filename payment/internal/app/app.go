@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"time"
 
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/keepalive"
@@ -19,6 +20,7 @@ import (
 	"github.com/krapagen/my_microservices_rocket/platform/pkg/closer"
 	"github.com/krapagen/my_microservices_rocket/platform/pkg/grpc/health"
 	"github.com/krapagen/my_microservices_rocket/platform/pkg/logger"
+	"github.com/krapagen/my_microservices_rocket/platform/pkg/tracing"
 	paymentv1 "github.com/krapagen/my_microservices_rocket/shared/pkg/proto/payment/v1"
 )
 
@@ -91,6 +93,7 @@ func (a *App) initDeps(ctx context.Context) {
 	inits := []func(context.Context){
 		a.initDI,
 		a.initLogger,
+		a.initTracer,
 		a.initListener,
 		a.initGRPCServer,
 	}
@@ -107,7 +110,34 @@ func (a *App) initDI(_ context.Context) {
 
 // initLogger настраивает глобальный slog с уровнем из конфига
 func (a *App) initLogger(_ context.Context) {
-	logger.Init(config.AppConfig().Logger.Level)
+	logger.Init(logger.Config{
+		Level:             config.AppConfig().Logger.Level,
+		ServiceName:       config.AppConfig().OtelConfig.ServiceName,
+		Environment:       config.AppConfig().Stage,
+		EnableOTLP:        true,
+		CollectorEndpoint: config.AppConfig().OtelConfig.Endpoint,
+	})
+	closer.Add("logger", func(ctx context.Context) error {
+		return logger.Close()
+	})
+}
+
+// initTracer создаёт OTel TracerProvider с OTLP-экспортером и регистрирует его глобально.
+// Вместе с ним устанавливается propagator (W3C TraceContext + Baggage) —
+// без него trace context не передавался бы между сервисами через gRPC metadata
+func (a *App) initTracer(ctx context.Context) {
+	shutdown, err := tracing.InitTracer(ctx, tracing.Config{
+		CollectorEndpoint: config.AppConfig().OtelConfig.Endpoint,
+		ServiceName:       config.AppConfig().OtelConfig.ServiceName,
+		Environment:       config.AppConfig().Stage,
+	})
+	if err != nil {
+		slog.Error("не удалось инициализировать трейсер", "error", err)
+		return
+	}
+	closer.Add("tracer", func(ctx context.Context) error {
+		return shutdown(ctx)
+	})
 }
 
 // initListener создаёт TCP-листенер для gRPC-сервера
@@ -125,6 +155,7 @@ func (a *App) initListener(_ context.Context) {
 func (a *App) initGRPCServer(ctx context.Context) {
 	a.grpcServer = grpc.NewServer(
 		grpc.Creds(insecure.NewCredentials()),
+		grpc.StatsHandler(otelgrpc.NewServerHandler()),
 		grpc.KeepaliveParams(keepalive.ServerParameters{
 			MaxConnectionIdle:     grpcMaxConnectionIdle,
 			MaxConnectionAge:      grpcMaxConnectionAge,

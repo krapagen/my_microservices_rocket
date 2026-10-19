@@ -15,3 +15,7 @@ logger:
 
 iam_client:
   address: "localhost:50053"
+
+otel:
+  endpoint: "localhost:4317"
+  service_name: "inventory-service"
