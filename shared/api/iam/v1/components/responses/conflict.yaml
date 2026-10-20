@@ -1,0 +1,8 @@
+description: Пользователь с таким логином уже существует
+content:
+  application/json:
+    schema:
+      $ref: '../errors/error.yaml'
+    example:
+      code: 409
+      message: "User already exists"

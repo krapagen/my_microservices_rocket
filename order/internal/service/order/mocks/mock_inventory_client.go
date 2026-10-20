@@ -21,10 +21,19 @@ func NewInventoryClient(t interface {
 	mock.TestingT
 	Cleanup(func())
 }) *InventoryClient {
+	if helper, ok := t.(interface{ Helper() }); ok {
+		helper.Helper()
+	}
+
 	mock := &InventoryClient{}
 	mock.Mock.Test(t)
 
-	t.Cleanup(func() { mock.AssertExpectations(t) })
+	t.Cleanup(func() {
+		if helper, ok := t.(interface{ Helper() }); ok {
+			helper.Helper()
+		}
+		mock.AssertExpectations(t)
+	})
 
 	return mock
 }
@@ -67,7 +76,7 @@ type InventoryClient_CommitParts_Call struct {
 // CommitParts is a helper method to define mock.On call
 //   - ctx context.Context
 //   - uuids []uuid.UUID
-func (_e *InventoryClient_Expecter) CommitParts(ctx interface{}, uuids interface{}) *InventoryClient_CommitParts_Call {
+func (_e *InventoryClient_Expecter) CommitParts(ctx any, uuids any) *InventoryClient_CommitParts_Call {
 	return &InventoryClient_CommitParts_Call{Call: _e.mock.On("CommitParts", ctx, uuids)}
 }
 
@@ -135,7 +144,7 @@ type InventoryClient_ListParts_Call struct {
 // ListParts is a helper method to define mock.On call
 //   - ctx context.Context
 //   - uuids []uuid.UUID
-func (_e *InventoryClient_Expecter) ListParts(ctx interface{}, uuids interface{}) *InventoryClient_ListParts_Call {
+func (_e *InventoryClient_Expecter) ListParts(ctx any, uuids any) *InventoryClient_ListParts_Call {
 	return &InventoryClient_ListParts_Call{Call: _e.mock.On("ListParts", ctx, uuids)}
 }
 
@@ -192,7 +201,7 @@ type InventoryClient_ReleaseParts_Call struct {
 // ReleaseParts is a helper method to define mock.On call
 //   - ctx context.Context
 //   - uuids []uuid.UUID
-func (_e *InventoryClient_Expecter) ReleaseParts(ctx interface{}, uuids interface{}) *InventoryClient_ReleaseParts_Call {
+func (_e *InventoryClient_Expecter) ReleaseParts(ctx any, uuids any) *InventoryClient_ReleaseParts_Call {
 	return &InventoryClient_ReleaseParts_Call{Call: _e.mock.On("ReleaseParts", ctx, uuids)}
 }
 
@@ -249,7 +258,7 @@ type InventoryClient_ReserveParts_Call struct {
 // ReserveParts is a helper method to define mock.On call
 //   - ctx context.Context
 //   - uuids []uuid.UUID
-func (_e *InventoryClient_Expecter) ReserveParts(ctx interface{}, uuids interface{}) *InventoryClient_ReserveParts_Call {
+func (_e *InventoryClient_Expecter) ReserveParts(ctx any, uuids any) *InventoryClient_ReserveParts_Call {
 	return &InventoryClient_ReserveParts_Call{Call: _e.mock.On("ReserveParts", ctx, uuids)}
 }
 
@@ -306,7 +315,7 @@ type InventoryClient_ValidateCompatibility_Call struct {
 // ValidateCompatibility is a helper method to define mock.On call
 //   - ctx context.Context
 //   - slots model.ShipSlots
-func (_e *InventoryClient_Expecter) ValidateCompatibility(ctx interface{}, slots interface{}) *InventoryClient_ValidateCompatibility_Call {
+func (_e *InventoryClient_Expecter) ValidateCompatibility(ctx any, slots any) *InventoryClient_ValidateCompatibility_Call {
 	return &InventoryClient_ValidateCompatibility_Call{Call: _e.mock.On("ValidateCompatibility", ctx, slots)}
 }
 

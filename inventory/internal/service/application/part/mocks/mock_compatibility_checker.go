@@ -18,10 +18,19 @@ func NewCompatibilityChecker(t interface {
 	mock.TestingT
 	Cleanup(func())
 }) *CompatibilityChecker {
+	if helper, ok := t.(interface{ Helper() }); ok {
+		helper.Helper()
+	}
+
 	mock := &CompatibilityChecker{}
 	mock.Mock.Test(t)
 
-	t.Cleanup(func() { mock.AssertExpectations(t) })
+	t.Cleanup(func() {
+		if helper, ok := t.(interface{ Helper() }); ok {
+			helper.Helper()
+		}
+		mock.AssertExpectations(t)
+	})
 
 	return mock
 }
@@ -63,7 +72,7 @@ type CompatibilityChecker_Check_Call struct {
 
 // Check is a helper method to define mock.On call
 //   - slots model.ResolvedShipSlots
-func (_e *CompatibilityChecker_Expecter) Check(slots interface{}) *CompatibilityChecker_Check_Call {
+func (_e *CompatibilityChecker_Expecter) Check(slots any) *CompatibilityChecker_Check_Call {
 	return &CompatibilityChecker_Check_Call{Call: _e.mock.On("Check", slots)}
 }
 

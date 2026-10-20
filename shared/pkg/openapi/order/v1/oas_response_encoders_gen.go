@@ -16,7 +16,6 @@ func encodeCancelOrderResponse(response CancelOrderRes, w http.ResponseWriter, s
 	case *CancelOrderResponse:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(200)
-		span.SetStatus(codes.Ok, http.StatusText(200))
 
 		e := new(jx.Encoder)
 		response.Encode(e)
@@ -29,7 +28,6 @@ func encodeCancelOrderResponse(response CancelOrderRes, w http.ResponseWriter, s
 	case *CancelOrderBadRequest:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(400)
-		span.SetStatus(codes.Error, http.StatusText(400))
 
 		e := new(jx.Encoder)
 		response.Encode(e)
@@ -42,7 +40,6 @@ func encodeCancelOrderResponse(response CancelOrderRes, w http.ResponseWriter, s
 	case *CancelOrderNotFound:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(404)
-		span.SetStatus(codes.Error, http.StatusText(404))
 
 		e := new(jx.Encoder)
 		response.Encode(e)
@@ -55,7 +52,6 @@ func encodeCancelOrderResponse(response CancelOrderRes, w http.ResponseWriter, s
 	case *CancelOrderConflict:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(409)
-		span.SetStatus(codes.Error, http.StatusText(409))
 
 		e := new(jx.Encoder)
 		response.Encode(e)
@@ -88,7 +84,6 @@ func encodeCreateOrderResponse(response CreateOrderRes, w http.ResponseWriter, s
 	case *CreateOrderResponse:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(201)
-		span.SetStatus(codes.Ok, http.StatusText(201))
 
 		e := new(jx.Encoder)
 		response.Encode(e)
@@ -101,7 +96,6 @@ func encodeCreateOrderResponse(response CreateOrderRes, w http.ResponseWriter, s
 	case *CreateOrderBadRequest:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(400)
-		span.SetStatus(codes.Error, http.StatusText(400))
 
 		e := new(jx.Encoder)
 		response.Encode(e)
@@ -114,7 +108,6 @@ func encodeCreateOrderResponse(response CreateOrderRes, w http.ResponseWriter, s
 	case *CreateOrderNotFound:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(404)
-		span.SetStatus(codes.Error, http.StatusText(404))
 
 		e := new(jx.Encoder)
 		response.Encode(e)
@@ -127,7 +120,6 @@ func encodeCreateOrderResponse(response CreateOrderRes, w http.ResponseWriter, s
 	case *CreateOrderConflict:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(409)
-		span.SetStatus(codes.Error, http.StatusText(409))
 
 		e := new(jx.Encoder)
 		response.Encode(e)
@@ -160,7 +152,6 @@ func encodeGetOrderResponse(response GetOrderRes, w http.ResponseWriter, span tr
 	case *OrderDto:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(200)
-		span.SetStatus(codes.Ok, http.StatusText(200))
 
 		e := new(jx.Encoder)
 		response.Encode(e)
@@ -173,7 +164,6 @@ func encodeGetOrderResponse(response GetOrderRes, w http.ResponseWriter, span tr
 	case *GetOrderBadRequest:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(400)
-		span.SetStatus(codes.Error, http.StatusText(400))
 
 		e := new(jx.Encoder)
 		response.Encode(e)
@@ -186,7 +176,6 @@ func encodeGetOrderResponse(response GetOrderRes, w http.ResponseWriter, span tr
 	case *GetOrderNotFound:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(404)
-		span.SetStatus(codes.Error, http.StatusText(404))
 
 		e := new(jx.Encoder)
 		response.Encode(e)
@@ -219,7 +208,6 @@ func encodePayOrderResponse(response PayOrderRes, w http.ResponseWriter, span tr
 	case *PayOrderResponse:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(200)
-		span.SetStatus(codes.Ok, http.StatusText(200))
 
 		e := new(jx.Encoder)
 		response.Encode(e)
@@ -232,7 +220,6 @@ func encodePayOrderResponse(response PayOrderRes, w http.ResponseWriter, span tr
 	case *PayOrderBadRequest:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(400)
-		span.SetStatus(codes.Error, http.StatusText(400))
 
 		e := new(jx.Encoder)
 		response.Encode(e)
@@ -245,7 +232,6 @@ func encodePayOrderResponse(response PayOrderRes, w http.ResponseWriter, span tr
 	case *PayOrderNotFound:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(404)
-		span.SetStatus(codes.Error, http.StatusText(404))
 
 		e := new(jx.Encoder)
 		response.Encode(e)
@@ -258,7 +244,6 @@ func encodePayOrderResponse(response PayOrderRes, w http.ResponseWriter, span tr
 	case *PayOrderConflict:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(409)
-		span.SetStatus(codes.Error, http.StatusText(409))
 
 		e := new(jx.Encoder)
 		response.Encode(e)

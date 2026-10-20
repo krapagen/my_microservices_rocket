@@ -7,18 +7,23 @@ import (
 
 	trmpgx "github.com/avito-tech/go-transaction-manager/drivers/pgxv5/v2"
 	"github.com/avito-tech/go-transaction-manager/trm/v2/manager"
+	redis_rate "github.com/go-redis/redis_rate/v10"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
 	"golang.org/x/crypto/bcrypt"
 
-	iamauthv1api "github.com/krapagen/my_microservices_rocket/iam/internal/api/auth/v1"
-	iamuserv1api "github.com/krapagen/my_microservices_rocket/iam/internal/api/user/v1"
+	iamauthv1api "github.com/krapagen/my_microservices_rocket/iam/internal/api/grpc/auth/v1"
+	iamuserv1api "github.com/krapagen/my_microservices_rocket/iam/internal/api/grpc/user/v1"
+	httpauthv1api "github.com/krapagen/my_microservices_rocket/iam/internal/api/http/auth/v1"
+	iamv1api "github.com/krapagen/my_microservices_rocket/iam/internal/api/http/iam/v1"
+	httpuserv1api "github.com/krapagen/my_microservices_rocket/iam/internal/api/http/user/v1"
 	"github.com/krapagen/my_microservices_rocket/iam/internal/config"
 	iamrepositorysession "github.com/krapagen/my_microservices_rocket/iam/internal/repository/session"
 	iamrepositoryuser "github.com/krapagen/my_microservices_rocket/iam/internal/repository/user"
 	iamservice "github.com/krapagen/my_microservices_rocket/iam/internal/service/iam"
 	"github.com/krapagen/my_microservices_rocket/platform/pkg/closer"
 	platformredis "github.com/krapagen/my_microservices_rocket/platform/pkg/redis"
+	iamv1 "github.com/krapagen/my_microservices_rocket/shared/pkg/openapi/iam/v1"
 	iamauthv1 "github.com/krapagen/my_microservices_rocket/shared/pkg/proto/auth/v1"
 	iamuserv1 "github.com/krapagen/my_microservices_rocket/shared/pkg/proto/user/v1"
 )
@@ -27,6 +32,7 @@ type diContainer struct {
 	// Инфраструктура
 	pgPool      *pgxpool.Pool
 	redisClient *redis.Client
+	rateLimiter *redis_rate.Limiter
 
 	// Менеджер транзакций
 	txManager iamrepositoryuser.TxManager
@@ -41,6 +47,7 @@ type diContainer struct {
 	// API-обработчики
 	iamAuthV1Handler iamauthv1.AuthServiceServer
 	iamUserV1Handler iamuserv1.UserServiceServer
+	iamV1Handler     iamv1.Handler
 }
 
 // PGPool возвращает пул подключений к PostgreSQL
@@ -99,6 +106,18 @@ func (d *diContainer) RedisClient() *redis.Client {
 	return d.redisClient
 }
 
+// RateLimiter возвращает распределённый rate limiter поверх Redis.
+// Использует redis-iam (тот же инстанс, что и сессии) — ключи rate:*
+// не пересекаются с ключами сессий.
+// При недоступности Redis middleware работает fail-open — запросы пропускаются.
+func (d *diContainer) RateLimiter() *redis_rate.Limiter {
+	if d.rateLimiter == nil {
+		d.rateLimiter = redis_rate.NewLimiter(d.RedisClient())
+	}
+
+	return d.rateLimiter
+}
+
 func (d *diContainer) TxManager(ctx context.Context) iamrepositoryuser.TxManager {
 	if d.txManager == nil {
 		txManager, err := manager.New(trmpgx.NewDefaultFactory(d.PGPool(ctx)))
@@ -150,4 +169,15 @@ func (d *diContainer) IamUserV1API(ctx context.Context) iamuserv1.UserServiceSer
 		d.iamUserV1Handler = iamuserv1api.New(d.IamService(ctx))
 	}
 	return d.iamUserV1Handler
+}
+
+func (d *diContainer) IamV1API(ctx context.Context) iamv1.Handler {
+	if d.iamV1Handler == nil {
+		svc := d.IamService(ctx)
+		d.iamV1Handler = iamv1api.New(
+			httpauthv1api.New(svc),
+			httpuserv1api.New(svc, svc),
+		)
+	}
+	return d.iamV1Handler
 }

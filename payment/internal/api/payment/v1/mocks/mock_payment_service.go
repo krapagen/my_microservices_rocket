@@ -21,10 +21,19 @@ func NewPaymentService(t interface {
 	mock.TestingT
 	Cleanup(func())
 }) *PaymentService {
+	if helper, ok := t.(interface{ Helper() }); ok {
+		helper.Helper()
+	}
+
 	mock := &PaymentService{}
 	mock.Mock.Test(t)
 
-	t.Cleanup(func() { mock.AssertExpectations(t) })
+	t.Cleanup(func() {
+		if helper, ok := t.(interface{ Helper() }); ok {
+			helper.Helper()
+		}
+		mock.AssertExpectations(t)
+	})
 
 	return mock
 }
@@ -78,7 +87,7 @@ type PaymentService_Pay_Call struct {
 // Pay is a helper method to define mock.On call
 //   - ctx context.Context
 //   - in input.PayOrderInput
-func (_e *PaymentService_Expecter) Pay(ctx interface{}, in interface{}) *PaymentService_Pay_Call {
+func (_e *PaymentService_Expecter) Pay(ctx any, in any) *PaymentService_Pay_Call {
 	return &PaymentService_Pay_Call{Call: _e.mock.On("Pay", ctx, in)}
 }
 

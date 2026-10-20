@@ -20,10 +20,19 @@ func NewUserRepository(t interface {
 	mock.TestingT
 	Cleanup(func())
 }) *UserRepository {
+	if helper, ok := t.(interface{ Helper() }); ok {
+		helper.Helper()
+	}
+
 	mock := &UserRepository{}
 	mock.Mock.Test(t)
 
-	t.Cleanup(func() { mock.AssertExpectations(t) })
+	t.Cleanup(func() {
+		if helper, ok := t.(interface{ Helper() }); ok {
+			helper.Helper()
+		}
+		mock.AssertExpectations(t)
+	})
 
 	return mock
 }
@@ -66,7 +75,7 @@ type UserRepository_Create_Call struct {
 // Create is a helper method to define mock.On call
 //   - ctx context.Context
 //   - user model.User
-func (_e *UserRepository_Expecter) Create(ctx interface{}, user interface{}) *UserRepository_Create_Call {
+func (_e *UserRepository_Expecter) Create(ctx any, user any) *UserRepository_Create_Call {
 	return &UserRepository_Create_Call{Call: _e.mock.On("Create", ctx, user)}
 }
 
@@ -132,7 +141,7 @@ type UserRepository_GetByLogin_Call struct {
 // GetByLogin is a helper method to define mock.On call
 //   - ctx context.Context
 //   - login string
-func (_e *UserRepository_Expecter) GetByLogin(ctx interface{}, login interface{}) *UserRepository_GetByLogin_Call {
+func (_e *UserRepository_Expecter) GetByLogin(ctx any, login any) *UserRepository_GetByLogin_Call {
 	return &UserRepository_GetByLogin_Call{Call: _e.mock.On("GetByLogin", ctx, login)}
 }
 
@@ -198,7 +207,7 @@ type UserRepository_GetByUUID_Call struct {
 // GetByUUID is a helper method to define mock.On call
 //   - ctx context.Context
 //   - uuid string
-func (_e *UserRepository_Expecter) GetByUUID(ctx interface{}, uuid interface{}) *UserRepository_GetByUUID_Call {
+func (_e *UserRepository_Expecter) GetByUUID(ctx any, uuid any) *UserRepository_GetByUUID_Call {
 	return &UserRepository_GetByUUID_Call{Call: _e.mock.On("GetByUUID", ctx, uuid)}
 }
 

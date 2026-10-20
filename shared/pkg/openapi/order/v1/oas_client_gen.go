@@ -4,6 +4,7 @@ package orderv1
 
 import (
 	"context"
+	"io"
 	"net/url"
 	"strings"
 	"time"
@@ -35,8 +36,7 @@ type Invoker interface {
 	CancelOrder(ctx context.Context, params CancelOrderParams) (CancelOrderRes, error)
 	// CreateOrder invokes createOrder operation.
 	//
-	// Создаёт новый заказ на постройку космического
-	// корабля.
+	// Создаёт новый заказ на постройку космического корабля.
 	//
 	// POST /api/v1/orders
 	CreateOrder(ctx context.Context, request *CreateOrderRequest) (CreateOrderRes, error)
@@ -176,7 +176,13 @@ func (c *Client) sendCancelOrder(ctx context.Context, params CancelOrderParams) 
 		return res, errors.Wrap(err, "do request")
 	}
 	body := resp.Body
-	defer body.Close()
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
 
 	stage = "DecodeResponse"
 	result, err := decodeCancelOrderResponse(resp)
@@ -189,8 +195,7 @@ func (c *Client) sendCancelOrder(ctx context.Context, params CancelOrderParams) 
 
 // CreateOrder invokes createOrder operation.
 //
-// Создаёт новый заказ на постройку космического
-// корабля.
+// Создаёт новый заказ на постройку космического корабля.
 //
 // POST /api/v1/orders
 func (c *Client) CreateOrder(ctx context.Context, request *CreateOrderRequest) (CreateOrderRes, error) {
@@ -254,7 +259,13 @@ func (c *Client) sendCreateOrder(ctx context.Context, request *CreateOrderReques
 		return res, errors.Wrap(err, "do request")
 	}
 	body := resp.Body
-	defer body.Close()
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
 
 	stage = "DecodeResponse"
 	result, err := decodeCreateOrderResponse(resp)
@@ -347,7 +358,13 @@ func (c *Client) sendGetOrder(ctx context.Context, params GetOrderParams) (res G
 		return res, errors.Wrap(err, "do request")
 	}
 	body := resp.Body
-	defer body.Close()
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
 
 	stage = "DecodeResponse"
 	result, err := decodeGetOrderResponse(resp)
@@ -443,7 +460,13 @@ func (c *Client) sendPayOrder(ctx context.Context, request *PayOrderRequest, par
 		return res, errors.Wrap(err, "do request")
 	}
 	body := resp.Body
-	defer body.Close()
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
 
 	stage = "DecodeResponse"
 	result, err := decodePayOrderResponse(resp)

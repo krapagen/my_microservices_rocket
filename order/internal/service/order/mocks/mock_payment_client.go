@@ -21,10 +21,19 @@ func NewPaymentClient(t interface {
 	mock.TestingT
 	Cleanup(func())
 }) *PaymentClient {
+	if helper, ok := t.(interface{ Helper() }); ok {
+		helper.Helper()
+	}
+
 	mock := &PaymentClient{}
 	mock.Mock.Test(t)
 
-	t.Cleanup(func() { mock.AssertExpectations(t) })
+	t.Cleanup(func() {
+		if helper, ok := t.(interface{ Helper() }); ok {
+			helper.Helper()
+		}
+		mock.AssertExpectations(t)
+	})
 
 	return mock
 }
@@ -79,7 +88,7 @@ type PaymentClient_PayOrder_Call struct {
 //   - ctx context.Context
 //   - orderUUID uuid.UUID
 //   - method model.PaymentMethod
-func (_e *PaymentClient_Expecter) PayOrder(ctx interface{}, orderUUID interface{}, method interface{}) *PaymentClient_PayOrder_Call {
+func (_e *PaymentClient_Expecter) PayOrder(ctx any, orderUUID any, method any) *PaymentClient_PayOrder_Call {
 	return &PaymentClient_PayOrder_Call{Call: _e.mock.On("PayOrder", ctx, orderUUID, method)}
 }
 

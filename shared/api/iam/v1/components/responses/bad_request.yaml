@@ -1,0 +1,8 @@
+description: Невалидный запрос
+content:
+  application/json:
+    schema:
+      $ref: '../errors/error.yaml'
+    example:
+      code: 400
+      message: "Invalid request parameters"

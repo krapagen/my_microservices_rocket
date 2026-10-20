@@ -22,10 +22,19 @@ func NewPartRepository(t interface {
 	mock.TestingT
 	Cleanup(func())
 }) *PartRepository {
+	if helper, ok := t.(interface{ Helper() }); ok {
+		helper.Helper()
+	}
+
 	mock := &PartRepository{}
 	mock.Mock.Test(t)
 
-	t.Cleanup(func() { mock.AssertExpectations(t) })
+	t.Cleanup(func() {
+		if helper, ok := t.(interface{ Helper() }); ok {
+			helper.Helper()
+		}
+		mock.AssertExpectations(t)
+	})
 
 	return mock
 }
@@ -68,7 +77,7 @@ type PartRepository_Commit_Call struct {
 // Commit is a helper method to define mock.On call
 //   - ctx context.Context
 //   - filter input.CommitFilter
-func (_e *PartRepository_Expecter) Commit(ctx interface{}, filter interface{}) *PartRepository_Commit_Call {
+func (_e *PartRepository_Expecter) Commit(ctx any, filter any) *PartRepository_Commit_Call {
 	return &PartRepository_Commit_Call{Call: _e.mock.On("Commit", ctx, filter)}
 }
 
@@ -134,7 +143,7 @@ type PartRepository_Get_Call struct {
 // Get is a helper method to define mock.On call
 //   - ctx context.Context
 //   - partUUID uuid.UUID
-func (_e *PartRepository_Expecter) Get(ctx interface{}, partUUID interface{}) *PartRepository_Get_Call {
+func (_e *PartRepository_Expecter) Get(ctx any, partUUID any) *PartRepository_Get_Call {
 	return &PartRepository_Get_Call{Call: _e.mock.On("Get", ctx, partUUID)}
 }
 
@@ -202,7 +211,7 @@ type PartRepository_List_Call struct {
 // List is a helper method to define mock.On call
 //   - ctx context.Context
 //   - filter input.PartFilter
-func (_e *PartRepository_Expecter) List(ctx interface{}, filter interface{}) *PartRepository_List_Call {
+func (_e *PartRepository_Expecter) List(ctx any, filter any) *PartRepository_List_Call {
 	return &PartRepository_List_Call{Call: _e.mock.On("List", ctx, filter)}
 }
 
@@ -270,7 +279,7 @@ type PartRepository_ListForUpdate_Call struct {
 // ListForUpdate is a helper method to define mock.On call
 //   - ctx context.Context
 //   - filter input.PartFilter
-func (_e *PartRepository_Expecter) ListForUpdate(ctx interface{}, filter interface{}) *PartRepository_ListForUpdate_Call {
+func (_e *PartRepository_Expecter) ListForUpdate(ctx any, filter any) *PartRepository_ListForUpdate_Call {
 	return &PartRepository_ListForUpdate_Call{Call: _e.mock.On("ListForUpdate", ctx, filter)}
 }
 
@@ -327,7 +336,7 @@ type PartRepository_UpdateReservedBatch_Call struct {
 // UpdateReservedBatch is a helper method to define mock.On call
 //   - ctx context.Context
 //   - parts []model.Part
-func (_e *PartRepository_Expecter) UpdateReservedBatch(ctx interface{}, parts interface{}) *PartRepository_UpdateReservedBatch_Call {
+func (_e *PartRepository_Expecter) UpdateReservedBatch(ctx any, parts any) *PartRepository_UpdateReservedBatch_Call {
 	return &PartRepository_UpdateReservedBatch_Call{Call: _e.mock.On("UpdateReservedBatch", ctx, parts)}
 }
 

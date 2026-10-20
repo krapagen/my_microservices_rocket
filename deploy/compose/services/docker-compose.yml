@@ -89,6 +89,7 @@ services:
         ALPINE_IMAGE: ${ALPINE_IMAGE}
     ports:
       - "50053:50053"
+      - "8081:8081"
     volumes:
       - ../../../iam/config.docker.yaml:/config.yaml
     environment:

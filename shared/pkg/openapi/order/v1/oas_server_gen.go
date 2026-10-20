@@ -16,8 +16,7 @@ type Handler interface {
 	CancelOrder(ctx context.Context, params CancelOrderParams) (CancelOrderRes, error)
 	// CreateOrder implements createOrder operation.
 	//
-	// Создаёт новый заказ на постройку космического
-	// корабля.
+	// Создаёт новый заказ на постройку космического корабля.
 	//
 	// POST /api/v1/orders
 	CreateOrder(ctx context.Context, req *CreateOrderRequest) (CreateOrderRes, error)

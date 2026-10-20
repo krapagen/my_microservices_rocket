@@ -1,0 +1,14 @@
+type: object
+required:
+  - login
+  - password
+properties:
+  login:
+    type: string
+    description: Логин пользователя
+    example: "cosmo_pilot"
+  password:
+    type: string
+    format: password
+    description: Пароль пользователя
+    example: "s3cret-passw0rd"

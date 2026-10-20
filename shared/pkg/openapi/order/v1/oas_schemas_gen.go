@@ -214,6 +214,11 @@ func (o *OptNilPaymentMethod) SetToNull() {
 	o.Value = v
 }
 
+// IsEmpty returns true if the field was omitted from the payload (not Set and not Null).
+func (o OptNilPaymentMethod) IsEmpty() bool {
+	return !o.Set && !o.Null
+}
+
 // Get returns value and boolean that denotes whether value was set.
 func (o OptNilPaymentMethod) Get() (v PaymentMethod, ok bool) {
 	if o.Null {
@@ -275,6 +280,11 @@ func (o *OptNilUUID) SetToNull() {
 	o.Null = true
 	var v uuid.UUID
 	o.Value = v
+}
+
+// IsEmpty returns true if the field was omitted from the payload (not Set and not Null).
+func (o OptNilUUID) IsEmpty() bool {
+	return !o.Set && !o.Null
 }
 
 // Get returns value and boolean that denotes whether value was set.

@@ -2,6 +2,14 @@ grpc:
   host: "0.0.0.0"
   port: "50053"
 
+http:
+  host: "0.0.0.0"
+  port: "8081"
+
+rate_limit:
+  rate: 100
+  burst: 200
+
 pg:
   host: "postgres-iam"
   port: "5432"

@@ -1,0 +1,8 @@
+description: Неверные учётные данные или недействительная сессия
+content:
+  application/json:
+    schema:
+      $ref: '../errors/error.yaml'
+    example:
+      code: 401
+      message: "Unauthorized"

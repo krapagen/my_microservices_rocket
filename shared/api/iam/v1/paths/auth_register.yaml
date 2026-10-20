@@ -1,0 +1,25 @@
+post:
+  summary: Регистрация пользователя
+  description: Создаёт нового пользователя в системе
+  operationId: register
+  tags:
+    - Auth
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: '../components/register_request.yaml'
+  responses:
+    '201':
+      description: Пользователь успешно создан
+      content:
+        application/json:
+          schema:
+            $ref: '../components/register_response.yaml'
+    '400':
+      $ref: '../components/responses/bad_request.yaml'
+    '409':
+      $ref: '../components/responses/conflict.yaml'
+    '500':
+      $ref: '../components/responses/internal_server_error.yaml'

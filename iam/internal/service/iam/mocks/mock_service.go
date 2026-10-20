@@ -22,10 +22,19 @@ func NewService(t interface {
 	mock.TestingT
 	Cleanup(func())
 }) *Service {
+	if helper, ok := t.(interface{ Helper() }); ok {
+		helper.Helper()
+	}
+
 	mock := &Service{}
 	mock.Mock.Test(t)
 
-	t.Cleanup(func() { mock.AssertExpectations(t) })
+	t.Cleanup(func() {
+		if helper, ok := t.(interface{ Helper() }); ok {
+			helper.Helper()
+		}
+		mock.AssertExpectations(t)
+	})
 
 	return mock
 }
@@ -77,7 +86,7 @@ type Service_GetUser_Call struct {
 // GetUser is a helper method to define mock.On call
 //   - ctx context.Context
 //   - userUUID uuid.UUID
-func (_e *Service_Expecter) GetUser(ctx interface{}, userUUID interface{}) *Service_GetUser_Call {
+func (_e *Service_Expecter) GetUser(ctx any, userUUID any) *Service_GetUser_Call {
 	return &Service_GetUser_Call{Call: _e.mock.On("GetUser", ctx, userUUID)}
 }
 
@@ -145,7 +154,7 @@ type Service_Login_Call struct {
 // Login is a helper method to define mock.On call
 //   - ctx context.Context
 //   - input1 input.LoginInput
-func (_e *Service_Expecter) Login(ctx interface{}, input1 interface{}) *Service_Login_Call {
+func (_e *Service_Expecter) Login(ctx any, input1 any) *Service_Login_Call {
 	return &Service_Login_Call{Call: _e.mock.On("Login", ctx, input1)}
 }
 
@@ -202,7 +211,7 @@ type Service_Logout_Call struct {
 // Logout is a helper method to define mock.On call
 //   - ctx context.Context
 //   - session uuid.UUID
-func (_e *Service_Expecter) Logout(ctx interface{}, session interface{}) *Service_Logout_Call {
+func (_e *Service_Expecter) Logout(ctx any, session any) *Service_Logout_Call {
 	return &Service_Logout_Call{Call: _e.mock.On("Logout", ctx, session)}
 }
 
@@ -270,7 +279,7 @@ type Service_Register_Call struct {
 // Register is a helper method to define mock.On call
 //   - ctx context.Context
 //   - input1 input.RegisterInput
-func (_e *Service_Expecter) Register(ctx interface{}, input1 interface{}) *Service_Register_Call {
+func (_e *Service_Expecter) Register(ctx any, input1 any) *Service_Register_Call {
 	return &Service_Register_Call{Call: _e.mock.On("Register", ctx, input1)}
 }
 
@@ -342,7 +351,7 @@ type Service_WhoAmI_Call struct {
 // WhoAmI is a helper method to define mock.On call
 //   - ctx context.Context
 //   - sessionUuid uuid.UUID
-func (_e *Service_Expecter) WhoAmI(ctx interface{}, sessionUuid interface{}) *Service_WhoAmI_Call {
+func (_e *Service_Expecter) WhoAmI(ctx any, sessionUuid any) *Service_WhoAmI_Call {
 	return &Service_WhoAmI_Call{Call: _e.mock.On("WhoAmI", ctx, sessionUuid)}
 }
 

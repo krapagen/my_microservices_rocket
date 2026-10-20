@@ -22,10 +22,19 @@ func NewOrderService(t interface {
 	mock.TestingT
 	Cleanup(func())
 }) *OrderService {
+	if helper, ok := t.(interface{ Helper() }); ok {
+		helper.Helper()
+	}
+
 	mock := &OrderService{}
 	mock.Mock.Test(t)
 
-	t.Cleanup(func() { mock.AssertExpectations(t) })
+	t.Cleanup(func() {
+		if helper, ok := t.(interface{ Helper() }); ok {
+			helper.Helper()
+		}
+		mock.AssertExpectations(t)
+	})
 
 	return mock
 }
@@ -68,7 +77,7 @@ type OrderService_Cancel_Call struct {
 // Cancel is a helper method to define mock.On call
 //   - ctx context.Context
 //   - orderUUID uuid.UUID
-func (_e *OrderService_Expecter) Cancel(ctx interface{}, orderUUID interface{}) *OrderService_Cancel_Call {
+func (_e *OrderService_Expecter) Cancel(ctx any, orderUUID any) *OrderService_Cancel_Call {
 	return &OrderService_Cancel_Call{Call: _e.mock.On("Cancel", ctx, orderUUID)}
 }
 
@@ -134,7 +143,7 @@ type OrderService_Create_Call struct {
 // Create is a helper method to define mock.On call
 //   - ctx context.Context
 //   - in input.CreateOrderInput
-func (_e *OrderService_Expecter) Create(ctx interface{}, in interface{}) *OrderService_Create_Call {
+func (_e *OrderService_Expecter) Create(ctx any, in any) *OrderService_Create_Call {
 	return &OrderService_Create_Call{Call: _e.mock.On("Create", ctx, in)}
 }
 
@@ -200,7 +209,7 @@ type OrderService_Get_Call struct {
 // Get is a helper method to define mock.On call
 //   - ctx context.Context
 //   - orderUUID uuid.UUID
-func (_e *OrderService_Expecter) Get(ctx interface{}, orderUUID interface{}) *OrderService_Get_Call {
+func (_e *OrderService_Expecter) Get(ctx any, orderUUID any) *OrderService_Get_Call {
 	return &OrderService_Get_Call{Call: _e.mock.On("Get", ctx, orderUUID)}
 }
 
@@ -269,7 +278,7 @@ type OrderService_Pay_Call struct {
 //   - ctx context.Context
 //   - orderUUID uuid.UUID
 //   - method model.PaymentMethod
-func (_e *OrderService_Expecter) Pay(ctx interface{}, orderUUID interface{}, method interface{}) *OrderService_Pay_Call {
+func (_e *OrderService_Expecter) Pay(ctx any, orderUUID any, method any) *OrderService_Pay_Call {
 	return &OrderService_Pay_Call{Call: _e.mock.On("Pay", ctx, orderUUID, method)}
 }
 
