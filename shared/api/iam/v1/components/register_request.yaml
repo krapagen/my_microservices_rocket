@@ -1,0 +1,18 @@
+type: object
+required:
+  - login
+  - password
+properties:
+  login:
+    type: string
+    minLength: 3
+    maxLength: 64
+    description: Логин пользователя
+    example: "cosmo_pilot"
+  password:
+    type: string
+    format: password
+    minLength: 8
+    maxLength: 128
+    description: Пароль пользователя
+    example: "s3cret-passw0rd"

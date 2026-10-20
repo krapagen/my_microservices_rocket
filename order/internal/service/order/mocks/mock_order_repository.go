@@ -21,10 +21,19 @@ func NewOrderRepository(t interface {
 	mock.TestingT
 	Cleanup(func())
 }) *OrderRepository {
+	if helper, ok := t.(interface{ Helper() }); ok {
+		helper.Helper()
+	}
+
 	mock := &OrderRepository{}
 	mock.Mock.Test(t)
 
-	t.Cleanup(func() { mock.AssertExpectations(t) })
+	t.Cleanup(func() {
+		if helper, ok := t.(interface{ Helper() }); ok {
+			helper.Helper()
+		}
+		mock.AssertExpectations(t)
+	})
 
 	return mock
 }
@@ -67,7 +76,7 @@ type OrderRepository_Create_Call struct {
 // Create is a helper method to define mock.On call
 //   - ctx context.Context
 //   - order model.Order
-func (_e *OrderRepository_Expecter) Create(ctx interface{}, order interface{}) *OrderRepository_Create_Call {
+func (_e *OrderRepository_Expecter) Create(ctx any, order any) *OrderRepository_Create_Call {
 	return &OrderRepository_Create_Call{Call: _e.mock.On("Create", ctx, order)}
 }
 
@@ -133,7 +142,7 @@ type OrderRepository_Get_Call struct {
 // Get is a helper method to define mock.On call
 //   - ctx context.Context
 //   - orderUUID uuid.UUID
-func (_e *OrderRepository_Expecter) Get(ctx interface{}, orderUUID interface{}) *OrderRepository_Get_Call {
+func (_e *OrderRepository_Expecter) Get(ctx any, orderUUID any) *OrderRepository_Get_Call {
 	return &OrderRepository_Get_Call{Call: _e.mock.On("Get", ctx, orderUUID)}
 }
 
@@ -199,7 +208,7 @@ type OrderRepository_GetForUpdate_Call struct {
 // GetForUpdate is a helper method to define mock.On call
 //   - ctx context.Context
 //   - orderUUID uuid.UUID
-func (_e *OrderRepository_Expecter) GetForUpdate(ctx interface{}, orderUUID interface{}) *OrderRepository_GetForUpdate_Call {
+func (_e *OrderRepository_Expecter) GetForUpdate(ctx any, orderUUID any) *OrderRepository_GetForUpdate_Call {
 	return &OrderRepository_GetForUpdate_Call{Call: _e.mock.On("GetForUpdate", ctx, orderUUID)}
 }
 
@@ -256,7 +265,7 @@ type OrderRepository_Update_Call struct {
 // Update is a helper method to define mock.On call
 //   - ctx context.Context
 //   - order model.Order
-func (_e *OrderRepository_Expecter) Update(ctx interface{}, order interface{}) *OrderRepository_Update_Call {
+func (_e *OrderRepository_Expecter) Update(ctx any, order any) *OrderRepository_Update_Call {
 	return &OrderRepository_Update_Call{Call: _e.mock.On("Update", ctx, order)}
 }
 

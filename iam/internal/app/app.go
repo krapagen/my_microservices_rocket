@@ -2,25 +2,31 @@ package app
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"net"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/reflection"
 
+	iamv1API "github.com/krapagen/my_microservices_rocket/iam/internal/api/http/iam/v1"
 	"github.com/krapagen/my_microservices_rocket/iam/internal/config"
 	"github.com/krapagen/my_microservices_rocket/iam/internal/interceptor"
 	"github.com/krapagen/my_microservices_rocket/platform/pkg/closer"
 	"github.com/krapagen/my_microservices_rocket/platform/pkg/grpc/health"
 	"github.com/krapagen/my_microservices_rocket/platform/pkg/logger"
+	"github.com/krapagen/my_microservices_rocket/platform/pkg/ratelimit"
 	"github.com/krapagen/my_microservices_rocket/platform/pkg/tracing"
+	iamv1 "github.com/krapagen/my_microservices_rocket/shared/pkg/openapi/iam/v1"
 	iamauthv1 "github.com/krapagen/my_microservices_rocket/shared/pkg/proto/auth/v1"
 	iamuserv1 "github.com/krapagen/my_microservices_rocket/shared/pkg/proto/user/v1"
 )
@@ -33,13 +39,20 @@ const (
 	grpcKeepaliveTimeout      = 1 * time.Second
 	grpcMinPingInterval       = 5 * time.Minute
 	shutdownTimeout           = 5 * time.Second
+
+	httpReadHeaderTimeout = 5 * time.Second  // Защита от Slowloris атаки
+	httpReadTimeout       = 15 * time.Second // Лимит на чтение всего запроса
+	httpWriteTimeout      = 15 * time.Second // Лимит на запись ответа
+	httpIdleTimeout       = 60 * time.Second // Таймаут keep-alive соединений
 )
 
 // App — корневая структура приложения, управляющая жизненным циклом всех компонентов
 type App struct {
-	diContainer *diContainer
-	grpcServer  *grpc.Server
-	listener    net.Listener
+	diContainer  *diContainer
+	grpcServer   *grpc.Server
+	httpServer   *http.Server
+	listener     net.Listener
+	httpListener net.Listener
 }
 
 // New создаёт и инициализирует приложение
@@ -62,9 +75,12 @@ func (a *App) Run() error {
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
 
-	errCh := make(chan error, 1)
+	errCh := make(chan error, 2)
 	go func() {
 		errCh <- a.runGRPCServer()
+	}()
+	go func() {
+		errCh <- a.runHTTPServer()
 	}()
 
 	var runErr error
@@ -97,6 +113,7 @@ func (a *App) initDeps(ctx context.Context) {
 		a.initTracer,
 		a.initListener,
 		a.initGRPCServer,
+		a.initHTTPServer,
 	}
 
 	for _, f := range inits {
@@ -150,6 +167,15 @@ func (a *App) initListener(_ context.Context) {
 	}
 
 	a.listener = listener
+
+	// HTTP-листенер для REST API (register/login/logout/getUser)
+	httpListener, err := net.Listen("tcp", config.AppConfig().HTTP.Address()) //nolint:noctx // net.Listen не требует контекст, адрес из конфига
+	if err != nil {
+		slog.Error("не удалось создать HTTP-листенер", "error", err)
+		os.Exit(1)
+	}
+
+	a.httpListener = httpListener
 }
 
 // initGRPCServer создаёт и настраивает gRPC-сервер, регистрирует обработчики
@@ -197,4 +223,54 @@ func (a *App) runGRPCServer() error {
 	slog.Info("🚀 gRPC-сервер запущен", "address", config.AppConfig().GRPC.Address())
 
 	return a.grpcServer.Serve(a.listener)
+}
+
+// initHTTPServer создаёт и настраивает HTTP-сервер, регистрирует обработчики
+func (a *App) initHTTPServer(ctx context.Context) {
+	// Получаем API-обработчик до регистрации closer'а: ленивая инициализация
+	// зацепит за собой создание пула БД и зарегистрирует его в closer'е.
+	// Closer работает по LIFO, поэтому пул должен попасть туда раньше http-сервера —
+	// тогда при shutdown сначала остановится приём запросов, а уже потом закроется БД
+	api := a.diContainer.IamV1API(ctx)
+
+	server, err := iamv1.NewServer(api, iamv1.WithErrorHandler(iamv1API.ErrorHandler))
+	if err != nil {
+		slog.Error("ошибка создания HTTP-сервера", "error", err)
+		return
+	}
+
+	// otelhttp — автоматические span'ы и метрики для каждого HTTP-запроса
+	tracedHandler := otelhttp.NewHandler(server, config.AppConfig().OtelConfig.ServiceName)
+
+	// Rate limiter — первым в цепочке, до otel: нет смысла тратить ресурсы
+	// на трейсинг и обработку, если лимит уже превышен.
+	// При недоступном Redis работает fail-open и пропускает запросы.
+	rlCfg := config.AppConfig().RateLimit
+	limitedHandler := ratelimit.Middleware(
+		a.diContainer.RateLimiter(),
+		rlCfg.Rate(),
+		rlCfg.Burst(),
+	)(tracedHandler)
+
+	a.httpServer = &http.Server{
+		Handler:           limitedHandler,
+		ReadHeaderTimeout: httpReadHeaderTimeout,
+		ReadTimeout:       httpReadTimeout,
+		WriteTimeout:      httpWriteTimeout,
+		IdleTimeout:       httpIdleTimeout,
+	}
+	closer.Add("HTTP server", func(ctx context.Context) error {
+		return a.httpServer.Shutdown(ctx)
+	})
+}
+
+// runHTTPServer запускает HTTP-сервер и блокирует до его остановки
+func (a *App) runHTTPServer() error {
+	slog.Info("🚀 http-сервер запущен", "address", config.AppConfig().HTTP.Address())
+
+	if err := a.httpServer.Serve(a.httpListener); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		return err
+	}
+
+	return nil
 }

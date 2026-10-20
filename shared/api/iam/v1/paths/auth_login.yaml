@@ -1,0 +1,25 @@
+post:
+  summary: Вход в систему
+  description: Аутентифицирует пользователя по логину и паролю, создаёт сессию
+  operationId: login
+  tags:
+    - Auth
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: '../components/login_request.yaml'
+  responses:
+    '200':
+      description: Вход выполнен успешно, возвращается UUID сессии
+      content:
+        application/json:
+          schema:
+            $ref: '../components/login_response.yaml'
+    '400':
+      $ref: '../components/responses/bad_request.yaml'
+    '401':
+      $ref: '../components/responses/unauthorized.yaml'
+    '500':
+      $ref: '../components/responses/internal_server_error.yaml'

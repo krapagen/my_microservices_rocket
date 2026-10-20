@@ -4,13 +4,13 @@ vars:
   GO_VERSION: '1.27.0'
   GOLANGCI_LINT_VERSION: 'v2.15.0'
   GCI_VERSION: 'v0.14.0'
-  GOFUMPT_VERSION: 'v0.10.0'
-  BUF_VERSION: '1.69.0'
-  PROTOC_GEN_GO_VERSION: 'v1.36.11'
-  PROTOC_GEN_GO_GRPC_VERSION: 'v1.6.1'
-  OGEN_VERSION: 'v1.20.3'
-  MOCKERY_VERSION: 'v3.7.0'
-  GOOSE_VERSION: 'v3.27.1'
+  GOFUMPT_VERSION: 'v0.12.0'
+  BUF_VERSION: '1.74.0'
+  PROTOC_GEN_GO_VERSION: 'v1.36.12'
+  PROTOC_GEN_GO_GRPC_VERSION: 'v1.6.2'
+  OGEN_VERSION: 'v1.24.0'
+  MOCKERY_VERSION: 'v3.8.1'
+  GOOSE_VERSION: 'v3.29.0'
   VEGETA_VERSION: 'v12.13.0'
 
   BIN_DIR: '{{.ROOT_DIR}}/bin'
@@ -86,7 +86,7 @@ tasks:
 
   setup:
     desc: "Устанавливает все инструменты"
-    deps: [formatters:install, golangci-lint:install, buf:install, proto:install-plugins, ogen:install]
+    deps: [formatters:install, golangci-lint:install, buf:install, proto:install-plugins, ogen:install, mockery:install, goose:install, vegeta:install]
 
   format:
     desc: "Форматирует код (gofumpt + gci)"
@@ -139,6 +139,7 @@ tasks:
     cmds:
       - echo '🔨 Генерируем Go-код из OpenAPI...'
       - '{{.OGEN}} -target ./pkg/openapi/order/v1 -package orderv1 -clean ./api/order/v1/order.openapi.yaml 2>/dev/null'
+      - '{{.OGEN}} -target ./pkg/openapi/iam/v1 -package iamv1 -clean ./api/iam/v1/iam.openapi.yaml 2>/dev/null'
 
   gen:
     desc: "Генерирует весь код"

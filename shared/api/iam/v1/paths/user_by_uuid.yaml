@@ -1,0 +1,25 @@
+parameters:
+  - $ref: ../params/user_uuid.yaml
+  - $ref: ../params/session_uuid.yaml
+
+get:
+  summary: Получить пользователя по UUID
+  description: Возвращает информацию о пользователе. Требует активную сессию в заголовке X-Session-UUID
+  operationId: getUser
+  tags:
+    - Users
+  responses:
+    '200':
+      description: Пользователь успешно найден
+      content:
+        application/json:
+          schema:
+            $ref: '../components/user_dto.yaml'
+    '400':
+      $ref: '../components/responses/bad_request.yaml'
+    '401':
+      $ref: '../components/responses/unauthorized.yaml'
+    '404':
+      $ref: '../components/responses/user_not_found.yaml'
+    '500':
+      $ref: '../components/responses/internal_server_error.yaml'

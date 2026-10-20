@@ -22,10 +22,19 @@ func NewPartService(t interface {
 	mock.TestingT
 	Cleanup(func())
 }) *PartService {
+	if helper, ok := t.(interface{ Helper() }); ok {
+		helper.Helper()
+	}
+
 	mock := &PartService{}
 	mock.Mock.Test(t)
 
-	t.Cleanup(func() { mock.AssertExpectations(t) })
+	t.Cleanup(func() {
+		if helper, ok := t.(interface{ Helper() }); ok {
+			helper.Helper()
+		}
+		mock.AssertExpectations(t)
+	})
 
 	return mock
 }
@@ -68,7 +77,7 @@ type PartService_Commit_Call struct {
 // Commit is a helper method to define mock.On call
 //   - ctx context.Context
 //   - filter input.CommitFilter
-func (_e *PartService_Expecter) Commit(ctx interface{}, filter interface{}) *PartService_Commit_Call {
+func (_e *PartService_Expecter) Commit(ctx any, filter any) *PartService_Commit_Call {
 	return &PartService_Commit_Call{Call: _e.mock.On("Commit", ctx, filter)}
 }
 
@@ -134,7 +143,7 @@ type PartService_Get_Call struct {
 // Get is a helper method to define mock.On call
 //   - ctx context.Context
 //   - partUUID uuid.UUID
-func (_e *PartService_Expecter) Get(ctx interface{}, partUUID interface{}) *PartService_Get_Call {
+func (_e *PartService_Expecter) Get(ctx any, partUUID any) *PartService_Get_Call {
 	return &PartService_Get_Call{Call: _e.mock.On("Get", ctx, partUUID)}
 }
 
@@ -202,7 +211,7 @@ type PartService_List_Call struct {
 // List is a helper method to define mock.On call
 //   - ctx context.Context
 //   - filter input.PartFilter
-func (_e *PartService_Expecter) List(ctx interface{}, filter interface{}) *PartService_List_Call {
+func (_e *PartService_Expecter) List(ctx any, filter any) *PartService_List_Call {
 	return &PartService_List_Call{Call: _e.mock.On("List", ctx, filter)}
 }
 
@@ -259,7 +268,7 @@ type PartService_Release_Call struct {
 // Release is a helper method to define mock.On call
 //   - ctx context.Context
 //   - uuids []uuid.UUID
-func (_e *PartService_Expecter) Release(ctx interface{}, uuids interface{}) *PartService_Release_Call {
+func (_e *PartService_Expecter) Release(ctx any, uuids any) *PartService_Release_Call {
 	return &PartService_Release_Call{Call: _e.mock.On("Release", ctx, uuids)}
 }
 
@@ -316,7 +325,7 @@ type PartService_Reserve_Call struct {
 // Reserve is a helper method to define mock.On call
 //   - ctx context.Context
 //   - uuids []uuid.UUID
-func (_e *PartService_Expecter) Reserve(ctx interface{}, uuids interface{}) *PartService_Reserve_Call {
+func (_e *PartService_Expecter) Reserve(ctx any, uuids any) *PartService_Reserve_Call {
 	return &PartService_Reserve_Call{Call: _e.mock.On("Reserve", ctx, uuids)}
 }
 
@@ -373,7 +382,7 @@ type PartService_ValidateCompatibility_Call struct {
 // ValidateCompatibility is a helper method to define mock.On call
 //   - ctx context.Context
 //   - slots model.ShipSlots
-func (_e *PartService_Expecter) ValidateCompatibility(ctx interface{}, slots interface{}) *PartService_ValidateCompatibility_Call {
+func (_e *PartService_Expecter) ValidateCompatibility(ctx any, slots any) *PartService_ValidateCompatibility_Call {
 	return &PartService_ValidateCompatibility_Call{Call: _e.mock.On("ValidateCompatibility", ctx, slots)}
 }
 

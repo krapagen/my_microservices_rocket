@@ -49,10 +49,16 @@ packages:
       include-interface-regex: ".*Service"
 
   # IAM service
-  github.com/krapagen/my_microservices_rocket/iam/internal/api/auth/v1:
+  github.com/krapagen/my_microservices_rocket/iam/internal/api/grpc/auth/v1:
     config:
       include-interface-regex: ".*Service"
-  github.com/krapagen/my_microservices_rocket/iam/internal/api/user/v1:
+  github.com/krapagen/my_microservices_rocket/iam/internal/api/grpc/user/v1:
+    config:
+      include-interface-regex: ".*Service"
+  github.com/krapagen/my_microservices_rocket/iam/internal/api/http/auth/v1:
+    config:
+      include-interface-regex: ".*Service"
+  github.com/krapagen/my_microservices_rocket/iam/internal/api/http/user/v1:
     config:
       include-interface-regex: ".*Service"
   github.com/krapagen/my_microservices_rocket/iam/internal/service/iam:

@@ -3,13 +3,15 @@
 // Package tests содержит интеграционные API-тесты IAM-сервиса
 //
 // Поднимает PostgreSQL и Redis через testcontainers-go и запускает gRPC-сервер
-// IAM в bufconn — без реальных портов и Docker Compose
+// IAM в bufconn и HTTP-сервер REST API через httptest — без реальных портов
+// и Docker Compose
 package tests
 
 import (
 	"context"
 	"database/sql"
 	"net"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"testing"
@@ -32,6 +34,7 @@ import (
 	"google.golang.org/grpc/test/bufconn"
 
 	iamApp "github.com/krapagen/my_microservices_rocket/iam/pkg/app"
+	iamv1 "github.com/krapagen/my_microservices_rocket/shared/pkg/openapi/iam/v1"
 	authv1 "github.com/krapagen/my_microservices_rocket/shared/pkg/proto/auth/v1"
 	commonv1 "github.com/krapagen/my_microservices_rocket/shared/pkg/proto/common/v1"
 	userv1 "github.com/krapagen/my_microservices_rocket/shared/pkg/proto/user/v1"
@@ -42,6 +45,7 @@ const bufSize = 1024 * 1024
 var (
 	authClient userv1.UserServiceClient
 	authSvc    authv1.AuthServiceClient
+	httpClient *iamv1.Client
 )
 
 func TestMain(m *testing.M) {
@@ -102,6 +106,20 @@ func TestMain(m *testing.M) {
 
 	authClient = userv1.NewUserServiceClient(conn)
 	authSvc = authv1.NewAuthServiceClient(conn)
+
+	// REST API: тот же стек (pool + rdb) через ogen-сервер на httptest
+	httpHandler, err := iamApp.NewHTTPHandler(pool, rdb, time.Hour, bcrypt.MinCost)
+	if err != nil {
+		panic("не удалось создать HTTP-обработчик: " + err.Error())
+	}
+
+	httpServer := httptest.NewServer(httpHandler)
+	defer httpServer.Close()
+
+	httpClient, err = iamv1.NewClient(httpServer.URL)
+	if err != nil {
+		panic("не удалось создать HTTP-клиент: " + err.Error())
+	}
 
 	os.Exit(m.Run())
 }

@@ -16,8 +16,12 @@ package metrics
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
+	"net"
+	"net/netip"
 	"os"
+	"slices"
 	"sync"
 	"time"
 
@@ -77,17 +81,13 @@ func Init(serviceName string, opts ...Option) {
 		}
 
 		// Resource — метаданные сервиса, прикрепляются к каждой метрике
-		// service.instance.id = hostname контейнера — различает реплики в Prometheus
+		// service.instance.id различает реплики в Prometheus
 		// (без него все реплики пишут в одну серию и ломают rate()/irate())
-		host, hostErr := os.Hostname()
-		if hostErr != nil {
-			host = "unknown"
-		}
 		res, err := resource.New(
 			ctx,
 			resource.WithAttributes(
 				semconv.ServiceName(serviceName),
-				attribute.String("service.instance.id", host),
+				attribute.String("service.instance.id", instanceID(serviceName)),
 				attribute.String("deployment.environment", "dev"),
 			),
 		)
@@ -140,4 +140,68 @@ func Close() error {
 	defer cancel()
 
 	return provider.Shutdown(ctx)
+}
+
+// instanceID возвращает читаемый идентификатор реплики вида "order-service-2".
+//
+// В Docker Compose hostname контейнера — случайный id (05bace1bb44e), а имя
+// сервиса резолвится через Docker DNS во все IP реплик (тем же способом Nginx
+// балансирует трафик). Номер реплики = позиция своего IP в отсортированном
+// списке адресов сервиса.
+//
+// Вне docker (локальный запуск, unit-тесты) возвращается hostname машины.
+func instanceID(serviceName string) string {
+	hostname, err := os.Hostname()
+	if err != nil {
+		hostname = "unknown"
+	}
+
+	replicaIPs, err := net.LookupIP(serviceName)
+	if err != nil || len(replicaIPs) == 0 {
+		return hostname
+	}
+
+	replicas := make([]netip.Addr, 0, len(replicaIPs))
+	for _, ip := range replicaIPs {
+		addr, ok := netip.AddrFromSlice(ip)
+		if !ok {
+			continue
+		}
+		// LookupIP отдаёт IPv4-mapped IPv6 — нормализуем до чистого v4,
+		// иначе Is4() отфильтрует все адреса и реплика не найдёт себя
+		if addr = addr.Unmap(); addr.Is4() {
+			replicas = append(replicas, addr)
+		}
+	}
+	slices.SortFunc(replicas, netip.Addr.Compare)
+	replicas = slices.Compact(replicas)
+
+	own := ownIPv4()
+	for i, rip := range replicas {
+		if slices.Contains(own, rip) {
+			return fmt.Sprintf("%s-%d", serviceName, i+1)
+		}
+	}
+
+	return hostname
+}
+
+// ownIPv4 возвращает свои не-loopback IPv4 адреса (интерфейсы контейнера)
+func ownIPv4() []netip.Addr {
+	addrs, err := net.InterfaceAddrs()
+	if err != nil {
+		return nil
+	}
+
+	var ips []netip.Addr
+	for _, a := range addrs {
+		ipnet, ok := a.(*net.IPNet)
+		if !ok {
+			continue
+		}
+		if ip4 := ipnet.IP.To4(); ip4 != nil && !ipnet.IP.IsLoopback() {
+			ips = append(ips, netip.AddrFrom4([4]byte{ip4[0], ip4[1], ip4[2], ip4[3]}))
+		}
+	}
+	return ips
 }

@@ -71,7 +71,7 @@ func (s *Server) handleCancelOrderRequest(args [1]string, argsEscaped bool, w ht
 		if code != 0 {
 			codeAttr := semconv.HTTPResponseStatusCode(code)
 			attrs = append(attrs, codeAttr)
-			span.SetAttributes(codeAttr)
+			span.SetAttributes(attrs...)
 		}
 		attrOpt := metric.WithAttributes(attrs...)
 
@@ -178,8 +178,7 @@ func (s *Server) handleCancelOrderRequest(args [1]string, argsEscaped bool, w ht
 
 // handleCreateOrderRequest handles createOrder operation.
 //
-// Создаёт новый заказ на постройку космического
-// корабля.
+// Создаёт новый заказ на постройку космического корабля.
 //
 // POST /api/v1/orders
 func (s *Server) handleCreateOrderRequest(args [0]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {
@@ -215,7 +214,7 @@ func (s *Server) handleCreateOrderRequest(args [0]string, argsEscaped bool, w ht
 		if code != 0 {
 			codeAttr := semconv.HTTPResponseStatusCode(code)
 			attrs = append(attrs, codeAttr)
-			span.SetAttributes(codeAttr)
+			span.SetAttributes(attrs...)
 		}
 		attrOpt := metric.WithAttributes(attrs...)
 
@@ -359,7 +358,7 @@ func (s *Server) handleGetOrderRequest(args [1]string, argsEscaped bool, w http.
 		if code != 0 {
 			codeAttr := semconv.HTTPResponseStatusCode(code)
 			attrs = append(attrs, codeAttr)
-			span.SetAttributes(codeAttr)
+			span.SetAttributes(attrs...)
 		}
 		attrOpt := metric.WithAttributes(attrs...)
 
@@ -502,7 +501,7 @@ func (s *Server) handlePayOrderRequest(args [1]string, argsEscaped bool, w http.
 		if code != 0 {
 			codeAttr := semconv.HTTPResponseStatusCode(code)
 			attrs = append(attrs, codeAttr)
-			span.SetAttributes(codeAttr)
+			span.SetAttributes(attrs...)
 		}
 		attrOpt := metric.WithAttributes(attrs...)
 

@@ -21,10 +21,19 @@ func NewSessionRepository(t interface {
 	mock.TestingT
 	Cleanup(func())
 }) *SessionRepository {
+	if helper, ok := t.(interface{ Helper() }); ok {
+		helper.Helper()
+	}
+
 	mock := &SessionRepository{}
 	mock.Mock.Test(t)
 
-	t.Cleanup(func() { mock.AssertExpectations(t) })
+	t.Cleanup(func() {
+		if helper, ok := t.(interface{ Helper() }); ok {
+			helper.Helper()
+		}
+		mock.AssertExpectations(t)
+	})
 
 	return mock
 }
@@ -67,7 +76,7 @@ type SessionRepository_Delete_Call struct {
 // Delete is a helper method to define mock.On call
 //   - ctx context.Context
 //   - uuid string
-func (_e *SessionRepository_Expecter) Delete(ctx interface{}, uuid interface{}) *SessionRepository_Delete_Call {
+func (_e *SessionRepository_Expecter) Delete(ctx any, uuid any) *SessionRepository_Delete_Call {
 	return &SessionRepository_Delete_Call{Call: _e.mock.On("Delete", ctx, uuid)}
 }
 
@@ -133,7 +142,7 @@ type SessionRepository_Get_Call struct {
 // Get is a helper method to define mock.On call
 //   - ctx context.Context
 //   - uuid string
-func (_e *SessionRepository_Expecter) Get(ctx interface{}, uuid interface{}) *SessionRepository_Get_Call {
+func (_e *SessionRepository_Expecter) Get(ctx any, uuid any) *SessionRepository_Get_Call {
 	return &SessionRepository_Get_Call{Call: _e.mock.On("Get", ctx, uuid)}
 }
 
@@ -192,7 +201,7 @@ type SessionRepository_Set_Call struct {
 //   - uuid string
 //   - session model.Session
 //   - ttl time.Duration
-func (_e *SessionRepository_Expecter) Set(ctx interface{}, uuid interface{}, session interface{}, ttl interface{}) *SessionRepository_Set_Call {
+func (_e *SessionRepository_Expecter) Set(ctx any, uuid any, session any, ttl any) *SessionRepository_Set_Call {
 	return &SessionRepository_Set_Call{Call: _e.mock.On("Set", ctx, uuid, session, ttl)}
 }
 

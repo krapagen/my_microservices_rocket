@@ -24,8 +24,7 @@ func (UnimplementedHandler) CancelOrder(ctx context.Context, params CancelOrderP
 
 // CreateOrder implements createOrder operation.
 //
-// Создаёт новый заказ на постройку космического
-// корабля.
+// Создаёт новый заказ на постройку космического корабля.
 //
 // POST /api/v1/orders
 func (UnimplementedHandler) CreateOrder(ctx context.Context, req *CreateOrderRequest) (r CreateOrderRes, _ error) {

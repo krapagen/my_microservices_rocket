@@ -1,0 +1,29 @@
+openapi: 3.0.3
+info:
+  title: IAM Service API
+  version: 1.0.0
+  description: |
+    HTTP API IAM-сервиса — регистрация и аутентификация пользователей.
+
+    Позволяет регистрировать пользователей, выполнять вход
+    (создание сессии) и завершать сессию.
+
+servers:
+  - url: http://localhost:8081
+    description: Local development server
+
+tags:
+  - name: Auth
+    description: Операции аутентификации — регистрация, вход и выход
+  - name: Users
+    description: Операции с пользователями
+
+paths:
+  /api/v1/auth/register:
+    $ref: ./paths/auth_register.yaml
+  /api/v1/auth/login:
+    $ref: ./paths/auth_login.yaml
+  /api/v1/auth/logout:
+    $ref: ./paths/auth_logout.yaml
+  /api/v1/users/{user_uuid}:
+    $ref: ./paths/user_by_uuid.yaml

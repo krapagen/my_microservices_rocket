@@ -1,0 +1,11 @@
+type: object
+required:
+  - code
+  - message
+properties:
+  code:
+    type: integer
+    description: HTTP-код ошибки
+  message:
+    type: string
+    description: Человекочитаемое описание ошибки
