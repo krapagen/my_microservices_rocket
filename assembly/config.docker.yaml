@@ -1,0 +1,20 @@
+logger:
+  level: "info"
+
+otel:
+  service_name: "assembly-service"
+  endpoint: "otel-collector:4317"
+
+assembler:
+  limit: 5
+
+kafka:
+  brokers:
+    - "kafka:29092"
+
+order_paid_consumer:
+  topic: "order.paid"
+  group_id: "assembly-service"
+
+ship_assembled_producer:
+  topic: "assembly.ship-assembled"

@@ -1,6 +1,6 @@
 module github.com/krapagen/my_microservices_rocket/assembly
 
-go 1.26.0
+go 1.27.0
 
 require (
 	github.com/IBM/sarama v1.60.0

@@ -1,6 +1,6 @@
 module github.com/krapagen/my_microservices_rocket/iam
 
-go 1.26.0
+go 1.27.0
 
 require (
 	github.com/avito-tech/go-transaction-manager/drivers/pgxv5/v2 v2.0.4

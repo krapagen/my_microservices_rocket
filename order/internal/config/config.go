@@ -19,6 +19,7 @@ type config struct {
 	OrderPaidProducer     orderPaidProducerConfig     `yaml:"order_paid_producer"`
 	ShipAssembledConsumer shipAssembledConsumerConfig `yaml:"ship_assembled_consumer"`
 	OtelConfig            otelConfig                  `yaml:"otel"`
+	RateLimitCfg          rateLimitConfig             `yaml:"rate_limit"`
 	Stage                 string                      `yaml:"stage"`
 }
 

@@ -1,6 +1,6 @@
 module github.com/krapagen/my_microservices_rocket/order
 
-go 1.26.0
+go 1.27.0
 
 require (
 	github.com/IBM/sarama v1.60.0
@@ -56,6 +56,7 @@ require (
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
+	github.com/go-redis/redis_rate/v10 v10.0.1 // indirect
 	github.com/hashicorp/go-uuid v1.0.3 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect

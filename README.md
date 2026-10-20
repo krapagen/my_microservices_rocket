@@ -1,6 +1,6 @@
 <!-- Coverage badge is auto-updated via GitHub Actions -->
 ![Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/krapagen/52a65d3bc94b4dfc010de299283c7f78/raw/coverage.json)
-![Go Version](https://img.shields.io/badge/Go-1.26-00ADD8?logo=go)
+![Go Version](https://img.shields.io/badge/Go-1.27-00ADD8?logo=go)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
 <h1 align="center">🚀 My Microservices Rocket</h1>
@@ -18,14 +18,18 @@
 ```mermaid
 flowchart TB
     client[Client]
-    order[Order Service\nHTTP :8080\nKafka producer/consumer]
+    nginx[Nginx LB :8080]
+    order[Order Service ×3\nHTTP :8080\nKafka producer/consumer]
+    ratelimit[(Redis\nrate limiter)]
     inventory[Inventory Service\ngRPC :50051]
     payment[Payment Service\ngRPC :50052]
     iam[IAM Service\ngRPC :50053]
     kafka[(Kafka)]
     assembly[Assembly Service\nKafka consumer/producer]
 
-    client --> order
+    client --> nginx
+    nginx --> order
+    order -->|GCRA check| ratelimit
     order -->|gRPC| inventory
     order -->|gRPC| payment
     order -->|gRPC| iam
@@ -46,7 +50,8 @@ flowchart TB
 
 | Service       | Role                         | Protocol / Port |
 |---------------|------------------------------|-----------------|
-| **Order**     | HTTP API + Kafka producer/consumer + gRPC client (inventory, payment, IAM) | HTTP :8080 / gRPC :50051, :50052, :50053 |
+| **Nginx**     | Load balancer перед репликами Order | HTTP :8080      |
+| **Order**     | HTTP API (3 replicas) + rate limiter + Kafka producer/consumer + gRPC client (inventory, payment, IAM) | HTTP :8080 (internal) |
 | **Assembly**  | Kafka consumer/producer      | Kafka only      |
 | **Inventory** | gRPC service                  | gRPC :50051     |
 | **Payment**   | gRPC service                  | gRPC :50052     |
@@ -64,9 +69,13 @@ my_microservices_rocket/
 ├── shared/         # Shared code: .proto definitions, OpenAPI specs, generated clients
 │   ├── proto/      # Protobuf sources (buf managed)
 │   └── api/        # OpenAPI specs
-├── platform/       # Platform-level utilities
+├── platform/       # Platform-level utilities (metrics, tracing, ratelimit, redis, closer)
 ├── deploy/
-│   └── compose/    # Docker Compose for core infra and service stacks
+│   ├── compose/    # Docker Compose stacks (core, observability, services, per-service DBs)
+│   ├── nginx/      # Nginx load balancer config
+│   ├── otel/       # OTel Collector config
+│   ├── grafana/    # Grafana provisioning (datasources + dashboards)
+│   └── dockerfiles/# Per-service Dockerfiles
 ├── migrations/     # SQL migrations (goose)
 ├── go.work         # Go workspace
 └── Taskfile.yaml   # All dev tasks
@@ -74,10 +83,12 @@ my_microservices_rocket/
 
 ## ⚙️ Tech Stack
 
-- **Language:** Go 1.26
+- **Language:** Go 1.27
 - **Transport:** gRPC (`protoc-gen-go`, `protoc-gen-go-grpc`) · REST (OpenAPI via `ogen`)
 - **Messaging:** Apache Kafka (KRaft mode, no ZooKeeper)
 - **Database:** PostgreSQL · Migrations via `goose`
+- **Cache / Rate limit:** Redis (`redis_rate`, GCRA) — общий лимит для реплик Order + сессии IAM
+- **Load balancing:** Nginx перед репликами Order (`--scale order-service=3`)
 - **Testing:** `testify` · `mockery` v3 · `testcontainers` · race detector
 - **Code generation:** `buf` (proto) · `ogen` (OpenAPI)
 - **Linting / Formatting:** `golangci-lint` · `gofumpt` · `gci`
@@ -88,7 +99,7 @@ my_microservices_rocket/
 
 ### Prerequisites
 
-- Go 1.26+
+- Go 1.27+
 - Docker & Docker Compose
 - [`task`](https://taskfile.dev) CLI
 
@@ -120,7 +131,8 @@ task run:iam         # gRPC  :50053
 Or start everything with Docker Compose:
 
 ```bash
-task up-all
+task up-all            # инфраструктура + все сервисы; Order ×3 за Nginx :8080
+task up-all-with-db    # то же + per-service БД и миграции
 ```
 
 ### 4. Stop everything
@@ -202,15 +214,14 @@ task deps:update
 
 | Compose stack | Contents |
 |---------------|----------|
-| `core`        | Kafka (KRaft) + Kafka UI |
+| `core`        | Kafka (KRaft) + Kafka UI + `redis-ratelimit` |
 | `observability` | OTel Collector + Jaeger + Prometheus + Grafana + Elasticsearch + Kibana + `es-init` (создаёт data stream `otel-logs`) |
-| `order`       | Order service + PostgreSQL |
-| `inventory`   | Inventory service + PostgreSQL |
-| `iam`         | IAM service + PostgreSQL + Redis |
+| `services`    | Все микросервисы + Nginx LB (`up-all` поднимает Order ×3) |
+| `order`       | PostgreSQL для Order |
+| `inventory`   | PostgreSQL для Inventory |
+| `iam`         | PostgreSQL + Redis (сессии) для IAM |
 
 Kafka UI is available at **http://localhost:8088** (default port from `core.env`).
-
-`payment` and `assembly` are run from source, not via Docker Compose.
 
 ## 📊 Observability
 
@@ -228,10 +239,24 @@ Kafka UI is available at **http://localhost:8088** (default port from `core.env`
 - **`otelgrpc`** stats handlers на gRPC-серверах и клиентах — автоматические span'ы на каждый вызов
 - **`otelhttp`** middleware на HTTP-сервере Order — спаны + метрики `http_server_request_duration_seconds`
 - **Бизнес-метрики OrderService**: `orders_created_total`, `orders_paid_total`, `orders_revenue_total` (сумма в копейках)
+- **`rate_limit_requests_total`** — решения лимитера (`result`/`path`/`instance`), считает и отказы 429, которые до `otelhttp` не доходят
+- **`service.instance.id`** = hostname в resource метрик — каждая реплика пишет свою серию (иначе реплики сливаются в одну и `rate()`/`irate()` врут)
 - **Кастомные спаны** `order.Create` / `order.Pay` с атрибутами заказа и запиcью ошибок
 - **Логи в ECS-формате** с `trace.id`/`span.id` — корреляция лог ↔ трейс в Kibana/Jaeger
+- **Дашборды Grafana** (provisioned из `deploy/grafana/dashboards`): Order Service и Rate Limiter (`http://localhost:3000/d/rate-limiter` — всего/пропущено/отклонено в req/s)
 
 > Для работы логов нужен data stream `otel-logs` — его создаёт one-shot контейнер `es-init` (запускается автоматически через `task up-core`).
+
+## 🚦 Rate Limiting
+
+HTTP API Order защищён распределённым rate limiter'ом (`platform/pkg/ratelimit`, Redis + `redis_rate`, алгоритм GCRA):
+
+- **Лимит общий для всех реплик** — состояние в `redis-ratelimit`, ключ — request path
+- **`rate: 100` req/s, `burst: 200`** — в `order/config.*.yaml` (`rate_limit:`)
+- Превышение → `429 Too Many Requests` (до `otelhttp`/auth — поэтому 429 не попадает в `http_server_*`)
+- **Fail-open**: недоступный Redis → пропуск + `result="fail_open"` в метрике
+
+Нагрузочный тест: `task load:http` (vegeta, 50 → 500 RPS за 2.5 мин) — линии «пропущено ≈100/с / отклонено» на дашборде Rate Limiter.
 
 ## 📦 Go Workspace
 
