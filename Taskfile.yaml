@@ -2,7 +2,7 @@ version: '3'
 
 vars:
   GO_VERSION: '1.27.0'
-  GOLANGCI_LINT_VERSION: 'v2.12.2'
+  GOLANGCI_LINT_VERSION: 'v2.15.0'
   GCI_VERSION: 'v0.14.0'
   GOFUMPT_VERSION: 'v0.10.0'
   BUF_VERSION: '1.69.0'
@@ -53,6 +53,9 @@ tasks:
       # Бинарь, собранный другой версией Go (напр. закешированный в CI под go1.26),
       # не может линтить таргет новой версии — считаем такой бинарь неустановленным.
       - go version {{.GOLANGCI_LINT}} | grep -q 'go{{index (splitList "." .GO_VERSION) 0}}.{{index (splitList "." .GO_VERSION) 1}}'
+      # Версия линтера должна совпадать с GOLANGCI_LINT_VERSION, иначе бамп версии
+      # не пересобирает бинарь.
+      - sh -c '{{.GOLANGCI_LINT}} version | grep -q "{{trimPrefix "v" .GOLANGCI_LINT_VERSION}}"'
 
   buf:install:
     desc: "Устанавливает buf"
