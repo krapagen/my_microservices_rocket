@@ -1,0 +1,28 @@
+grpc:
+  host: "0.0.0.0"
+  port: "50053"
+
+pg:
+  host: "postgres-iam"
+  port: "5432"
+  database: "iam-service"
+  user: "iam-service-user"
+  password: "iam-service-password"
+  sslmode: "disable"
+
+redis:
+  host: "redis-iam"
+  port: "6379"
+  password: ""
+  db: 0
+  connect_timeout: 5s
+
+session:
+  ttl: 24h
+
+logger:
+  level: "info"
+
+otel:
+  service_name: "iam-service"
+  endpoint: "otel-collector:4317"

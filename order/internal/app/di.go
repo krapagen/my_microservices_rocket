@@ -8,7 +8,9 @@ import (
 	"github.com/IBM/sarama"
 	trmpgx "github.com/avito-tech/go-transaction-manager/drivers/pgxv5/v2"
 	"github.com/avito-tech/go-transaction-manager/trm/v2/manager"
+	"github.com/go-redis/redis_rate/v10"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/redis/go-redis/v9"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -58,6 +60,10 @@ type diContainer struct {
 	consumerGroup     sarama.ConsumerGroup
 	orderPaidProducer *wrappedKafkaProducer.Producer
 	shipAssembledCons *wrappedKafkaConsumer.Consumer
+
+	// rate limiter
+	redisClient *redis.Client
+	rateLimiter *redis_rate.Limiter
 
 	// producer service
 	orderPaidProducerService orderService.OrderPaidProducer
@@ -153,6 +159,23 @@ func (d *diContainer) PaymentClient() orderService.PaymentClient {
 
 func (d *diContainer) AuthClient() *iamClient.Client {
 	return iamClient.New(authv1.NewAuthServiceClient(d.iamConn))
+}
+
+// RateLimiter возвращает распределённый rate limiter поверх Redis.
+// При недоступности Redis middleware работает fail-open — запросы пропускаются.
+func (d *diContainer) RateLimiter() *redis_rate.Limiter {
+	if d.rateLimiter == nil {
+		d.redisClient = redis.NewClient(&redis.Options{
+			Addr: config.AppConfig().RateLimit().RedisAddress(),
+		})
+		closer.Add("Redis rate limiter", func(_ context.Context) error {
+			return d.redisClient.Close()
+		})
+
+		d.rateLimiter = redis_rate.NewLimiter(d.redisClient)
+	}
+
+	return d.rateLimiter
 }
 
 func (d *diContainer) SyncProducer() sarama.SyncProducer {

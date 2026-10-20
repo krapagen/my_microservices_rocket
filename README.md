@@ -1,6 +1,6 @@
 <!-- Coverage badge is auto-updated via GitHub Actions -->
 ![Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/krapagen/52a65d3bc94b4dfc010de299283c7f78/raw/coverage.json)
-![Go Version](https://img.shields.io/badge/Go-1.26-00ADD8?logo=go)
+![Go Version](https://img.shields.io/badge/Go-1.27-00ADD8?logo=go)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
 <h1 align="center">🚀 My Microservices Rocket</h1>
@@ -74,7 +74,7 @@ my_microservices_rocket/
 
 ## ⚙️ Tech Stack
 
-- **Language:** Go 1.26
+- **Language:** Go 1.27
 - **Transport:** gRPC (`protoc-gen-go`, `protoc-gen-go-grpc`) · REST (OpenAPI via `ogen`)
 - **Messaging:** Apache Kafka (KRaft mode, no ZooKeeper)
 - **Database:** PostgreSQL · Migrations via `goose`
@@ -88,7 +88,7 @@ my_microservices_rocket/
 
 ### Prerequisites
 
-- Go 1.26+
+- Go 1.27+
 - Docker & Docker Compose
 - [`task`](https://taskfile.dev) CLI
 

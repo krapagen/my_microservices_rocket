@@ -1,6 +1,6 @@
 module github.com/krapagen/my_microservices_rocket/shared
 
-go 1.26.0
+go 1.27.0
 
 require (
 	github.com/go-faster/errors v0.7.1

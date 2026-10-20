@@ -4,11 +4,16 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"time"
 
 	"github.com/IBM/sarama"
 
 	"github.com/krapagen/my_microservices_rocket/platform/pkg/kafka"
 )
+
+// retryDelay — пауза перед повторным Consume после транзиентной ошибки.
+// Покрывает гонку на старте: топик ещё не создан, брокер не готов и т.п.
+const retryDelay = 3 * time.Second
 
 // Option — функциональная опция для конфигурации Consumer
 type Option func(*Consumer)
@@ -66,8 +71,23 @@ func (c *Consumer) Consume(ctx context.Context, handler kafka.MessageHandler) er
 				return nil
 			}
 
-			slog.ErrorContext(ctx, "ошибка потребления Kafka", "error", err)
-			return err
+			if ctx.Err() != nil {
+				return ctx.Err()
+			}
+
+			// Транзиентная ошибка (например, топик ещё не создан на свежем
+			// брокере или брокер недоступен) — это не повод убивать сервис:
+			// ждём и заходим в Consume снова. Фатал остаётся только на
+			// отмене контекста / закрытии группы.
+			slog.WarnContext(ctx, "ошибка потребления Kafka, повторная попытка", "error", err, "retry_in", retryDelay)
+
+			timer := time.NewTimer(retryDelay)
+			select {
+			case <-ctx.Done():
+				timer.Stop()
+				return ctx.Err()
+			case <-timer.C:
+			}
 		}
 
 		if ctx.Err() != nil {

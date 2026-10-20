@@ -1,7 +1,7 @@
 version: '3'
 
 vars:
-  GO_VERSION: '1.26.0'
+  GO_VERSION: '1.27.0'
   GOLANGCI_LINT_VERSION: 'v2.12.2'
   GCI_VERSION: 'v0.14.0'
   GOFUMPT_VERSION: 'v0.10.0'
@@ -11,6 +11,7 @@ vars:
   OGEN_VERSION: 'v1.20.3'
   MOCKERY_VERSION: 'v3.7.0'
   GOOSE_VERSION: 'v3.27.1'
+  VEGETA_VERSION: 'v12.13.0'
 
   BIN_DIR: '{{.ROOT_DIR}}/bin'
   GOLANGCI_LINT: '{{.BIN_DIR}}/golangci-lint'
@@ -26,6 +27,7 @@ vars:
   COVERAGE_THRESHOLD: '95'
   GOOSE: '{{.BIN_DIR}}/goose'
   KIBANA_URL: 'http://localhost:5601'
+  VEGETA: '{{.BIN_DIR}}/vegeta'
 
   MODULES: order inventory payment assembly iam
 
@@ -311,22 +313,6 @@ tasks:
       - echo "[task] 🛑 Останавливаем Inventory с зависимостями"
       - docker compose --env-file ../../../inventory.env down --volumes
 
-  up-all:
-    desc: Поднять все сервисы по очереди вместе с зависимостями
-    cmds:
-      - task up-core
-      - task up-inventory
-      - task up-order
-      - task up-iam
-
-  down-all:
-    desc: Остановить и удалить все сервисы по очереди вместе с зависимостями
-    cmds:
-      - task down-order
-      - task down-inventory
-      - task down-core
-      - task down-iam
-
   migrate:order:up:
     desc: "Применяет все миграции Order-сервиса"
     deps: [ goose:install ]
@@ -377,6 +363,8 @@ tasks:
       - docker network create microservices-net 2>/dev/null || true
       - echo '[task] 🚀 Поднимаем core контейнеры (Kafka)'
       - docker compose -f deploy/compose/core/docker-compose.yml --env-file core.env up --build --detach
+      - echo '[task] ⏳ Ждём создания Kafka-топиков (kafka-init)'
+      - docker wait kafka-init
       - echo '[task] 📊 Поднимаем observability (OTEL Collector, ES, Kibana, Prometheus, Grafana, Jaeger)'
       - docker compose -f deploy/compose/observability/docker-compose.yml --env-file core.env up --build --detach
 
@@ -469,3 +457,100 @@ tasks:
     cmds:
       - task: kibana:wait
       - task: kibana:create-view
+
+  vegeta:install:
+    desc: "Устанавливает vegeta (HTTP нагрузочное тестирование)"
+    cmds:
+      - GOBIN={{.BIN_DIR}} go install github.com/tsenart/vegeta/v12@{{.VEGETA_VERSION}}
+    status:
+      - test -x {{.VEGETA}}
+
+  # Замените существующий up-all на эту версию.
+  # --scale order-service=3 поднимает 3 инстанса OrderService за Nginx.
+  up-all:
+    desc: "Поднять инфраструктуру + сервисы (3 инстанса OrderService)"
+    cmds:
+      - task: up-core
+      - >-
+        docker compose
+        --env-file core.env
+        -f deploy/compose/services/docker-compose.yml
+        up -d --build --scale order-service=3
+
+  # Ждёт, пока БД-контейнеры начнут принимать соединения.
+  # Нужно перед миграциями на холодном старте — postgres поднимается ~3-5с.
+  db:wait:
+    desc: "Ждёт готовности БД-контейнеров (postgres-order/inventory/iam)"
+    cmds:
+      - |
+        for c in postgres-order postgres-inventory postgres-iam; do
+          echo "[task] ⏳ Ждём готовности $c"
+          n=0
+          until docker exec "$c" pg_isready -q 2>/dev/null; do
+            sleep 2
+            n=$((n+1))
+            if [ "$n" -gt 30 ]; then
+              echo "[task] ❌ $c не поднялся за 60s" && exit 1
+            fi
+          done
+        done
+
+  # up-all + per-service БД (postgres-*, redis-iam) и миграции.
+  # Зеркало down-all-with-db.
+  up-all-with-db:
+    desc: "Поднять всё, включая БД и миграции (3 инстанса OrderService)"
+    cmds:
+      - task: up-order
+      - task: up-inventory
+      - task: up-iam
+      - task: db:wait
+      - task: migrate:order:up
+      - task: migrate:inventory:up
+      - task: migrate:iam:up
+      - task: up-all
+
+  # Замените существующий down-all на эту версию.
+  down-all:
+    desc: "Остановить всё"
+    cmds:
+      - >-
+        docker compose
+        --env-file core.env
+        -f deploy/compose/services/docker-compose.yml
+        down
+      - task: down-core
+
+  # down-all + per-service БД через существующие down-* таски.
+  # ⚠️ down-* и down-core используют --volumes — данные БД, Kafka и
+  # observability СТИРАЮТСЯ. После следующего up нужны migrate:*:up.
+  down-all-with-db:
+    desc: "Остановить всё и удалить контейнеры БД с данными (--volumes)"
+    cmds:
+      - task: down-all
+      - task: down-order
+      - task: down-inventory
+      - task: down-iam
+
+  # Нагрузочный тест HTTP: ступенчатый рост 50 → 500 RPS за 2.5 минуты.
+  # Запуск: task up-all (в одном терминале), task load:http (в другом).
+  # Результаты смотреть в Grafana (localhost:3000).
+  load:http:
+    desc: "Нагрузочный тест HTTP: POST с нарастающей нагрузкой (50 → 500 RPS за 2.5 мин)"
+    deps: [ vegeta:install ]
+    cmds:
+      - |
+        VEGETA="{{.VEGETA}}"
+        RESULTS_DIR=$(mktemp -d)
+        BODY_FILE="$RESULTS_DIR/body.json"
+        echo '{"hull_uuid":"test-hull","engine_uuid":"test-engine"}' > "$BODY_FILE"
+        trap 'rm -rf "$RESULTS_DIR"' EXIT
+
+        for rate in 50 100 150 200 250 300 350 400 450 500; do
+          echo "⏱️  ступень: ${rate} RPS (15 сек)"
+          echo "POST http://localhost:8080/api/v1/orders" | \
+            $VEGETA attack -rate="${rate}/s" -duration=15s \
+              -body="$BODY_FILE" -header="Content-Type: application/json" | \
+            $VEGETA encode --to json >> "$RESULTS_DIR/results.json"
+        done
+
+        $VEGETA report -type=json < "$RESULTS_DIR/results.json"

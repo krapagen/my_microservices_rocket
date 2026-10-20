@@ -17,6 +17,7 @@ package metrics
 import (
 	"context"
 	"log/slog"
+	"os"
 	"sync"
 	"time"
 
@@ -76,10 +77,17 @@ func Init(serviceName string, opts ...Option) {
 		}
 
 		// Resource — метаданные сервиса, прикрепляются к каждой метрике
+		// service.instance.id = hostname контейнера — различает реплики в Prometheus
+		// (без него все реплики пишут в одну серию и ломают rate()/irate())
+		host, hostErr := os.Hostname()
+		if hostErr != nil {
+			host = "unknown"
+		}
 		res, err := resource.New(
 			ctx,
 			resource.WithAttributes(
 				semconv.ServiceName(serviceName),
+				attribute.String("service.instance.id", host),
 				attribute.String("deployment.environment", "dev"),
 			),
 		)

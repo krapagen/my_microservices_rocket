@@ -22,6 +22,7 @@ import (
 	"github.com/krapagen/my_microservices_rocket/platform/pkg/closer"
 	"github.com/krapagen/my_microservices_rocket/platform/pkg/logger"
 	"github.com/krapagen/my_microservices_rocket/platform/pkg/metrics"
+	"github.com/krapagen/my_microservices_rocket/platform/pkg/ratelimit"
 	"github.com/krapagen/my_microservices_rocket/platform/pkg/tracing"
 	orderv1 "github.com/krapagen/my_microservices_rocket/shared/pkg/openapi/order/v1"
 )
@@ -220,8 +221,18 @@ func (a *App) initHTTPServer(ctx context.Context) {
 	// для каждого HTTP-запроса; оборачивает всю цепочку, включая auth
 	tracedHandler := otelhttp.NewHandler(authHandler, config.AppConfig().OtelConfig.ServiceName)
 
+	// Rate limiter — первым в цепочке, до otel/auth: нет смысла проверять
+	// сессию в IAMService и тратить ресурсы, если лимит уже превышен.
+	// При недоступном Redis работает fail-open и пропускает запросы.
+	rlCfg := config.AppConfig().RateLimit()
+	limitedHandler := ratelimit.Middleware(
+		a.diContainer.RateLimiter(),
+		rlCfg.Rate(),
+		rlCfg.Burst(),
+	)(tracedHandler)
+
 	a.httpServer = &http.Server{
-		Handler:           tracedHandler,
+		Handler:           limitedHandler,
 		ReadHeaderTimeout: httpReadHeaderTimeout, // Защита от Slowloris атаки
 		ReadTimeout:       httpReadTimeout,       // Лимит на чтение всего запроса
 		WriteTimeout:      httpWriteTimeout,      // Лимит на запись ответа

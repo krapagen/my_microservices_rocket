@@ -123,6 +123,46 @@ services: # Раздел, в котором описываются все кон
       - microservices-net
       # Подключаем контейнер к общей сети, в которой живут все сервисы микросервисной архитектуры
 
+  # --- Redis для distributed rate limiter (неделя 8) ---
+
+  redis-ratelimit:
+    image: ${REDIS_RATELIMIT_IMAGE}
+    container_name: redis-ratelimit
+    ports:
+      - "${REDIS_RATELIMIT_PORT:-6379}:6379"
+      # Пробрасываем порт Redis наружу — нужно, чтобы локальные сервисы (config.local.yaml)
+      # могли подключаться к rate limiter по localhost:${REDIS_RATELIMIT_PORT}.
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - microservices-net
+
+  # --- Инициализация топиков (one-shot) ---
+  # Создаёт бизнес-топики до старта сервисов. Без этого консьюмеры падают с
+  # UNKNOWN_TOPIC_OR_PARTITION, если стартовали раньше первого продюса
+  # (например, на свежем брокере после очистки volumes).
+  kafka-init:
+    image: ${KAFKA_IMAGE}
+    container_name: kafka-init
+    depends_on:
+      kafka:
+        condition: service_healthy
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - >
+        for i in $(seq 1 30); do
+        kafka-topics --bootstrap-server kafka:${KAFKA_INTERNAL_PORT} --create --if-not-exists --topic order.paid &&
+        kafka-topics --bootstrap-server kafka:${KAFKA_INTERNAL_PORT} --create --if-not-exists --topic assembly.ship-assembled &&
+        exit 0;
+        sleep 2;
+        done; exit 1
+    networks:
+      - microservices-net
+
 volumes: # Раздел с определением томов
   kafka_data: # Именованный том для хранения данных Kafka
   # Docker сам управляет этим хранилищем, данные сохраняются между перезапусками контейнеров.

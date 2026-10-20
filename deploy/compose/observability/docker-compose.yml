@@ -145,8 +145,8 @@ services:
         curl -fsS -X PUT "http://elasticsearch:9200/_index_template/otel-logs"
         -H "Content-Type: application/json"
         -d '{"index_patterns":["otel-logs*"],"data_stream":{},"priority":500}'
-        && { curl -fsS "http://elasticsearch:9200/_data_stream/otel-logs"
-             || curl -fsS -X PUT "http://elasticsearch:9200/_data_stream/otel-logs"; }
+        && { curl -fsS "http://elasticsearch:9200/_data_stream/otel-logs" ||
+        curl -fsS -X PUT "http://elasticsearch:9200/_data_stream/otel-logs"; }
     networks:
       - microservices-net
 
