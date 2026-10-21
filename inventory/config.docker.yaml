@@ -14,7 +14,7 @@ iam_client:
   address: "iam-service:50053"
 
 logger:
-  level: "info"
+  level: "warn"
 
 otel:
   service_name: "inventory-service"

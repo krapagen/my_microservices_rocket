@@ -475,14 +475,14 @@ tasks:
   # Замените существующий up-all на эту версию.
   # --scale order-service=3 поднимает 3 инстанса OrderService за Nginx.
   up-all:
-    desc: "Поднять инфраструктуру + сервисы (3 инстанса OrderService)"
+    desc: "Поднять инфраструктуру + сервисы (3 инстанса OrderService, InventoryService и IAMService)"
     cmds:
       - task: up-core
       - >-
         docker compose
         --env-file core.env
         -f deploy/compose/services/docker-compose.yml
-        up -d --build --scale order-service=3
+        up -d --build --scale order-service=3 --scale inventory-service=3 --scale iam-service=3
 
   # Ждёт, пока БД-контейнеры начнут принимать соединения.
   # Нужно перед миграциями на холодном старте — postgres поднимается ~3-5с.
@@ -507,6 +507,7 @@ tasks:
   up-all-with-db:
     desc: "Поднять всё, включая БД и миграции (3 инстанса OrderService)"
     cmds:
+      - task: up-core
       - task: up-order
       - task: up-inventory
       - task: up-iam
@@ -524,7 +525,14 @@ tasks:
         docker compose
         --env-file core.env
         -f deploy/compose/services/docker-compose.yml
-        down
+        down --remove-orphans
+      # Страховка от трупов: убитые/недосозданные контейнеры services-*
+      # (docker kill, оборвавшийся на конфликте имён up) держат имена —
+      # следующий up падает с "name already in use". down снимает контейнеры
+      # проекта, а этот шаг добивает всё остальное по префиксу services-*.
+      - |
+        stale=$(docker ps -aq --filter "name=^services-" 2>/dev/null)
+        [ -n "$stale" ] && docker rm -f $stale || true
       - task: down-core
 
   # down-all + per-service БД через существующие down-* таски.
@@ -561,3 +569,100 @@ tasks:
         done
 
         $VEGETA report -type=json < "$RESULTS_DIR/results.json"
+
+  # Сквозной сценарий: создать заказ → оплатить его по факту ответа.
+  # 1) login в IAM → Bearer session_uuid.
+  # 2) create-атака: POST /api/v1/orders на RATE RPS в течение DURATION_S сек.
+  # 3) vegeta encode отдаёт тела ответов (NDJSON, body в base64) → jq достаёт
+  #    order_uuid и пишет pay-цели в FIFO.
+  # 4) pay-атака с -lazy targeter'ом читает цели из FIFO в реальном времени:
+  #    оплата уходит как только пришёл ответ create. +10с буфер на дожатие хвоста,
+  #    по EOF (конец целей) атака завершается раньше.
+  # Требует jq и запущенный стенд: task up-all-with-db.
+  # Переменные окружения: RATE=300 DURATION_S=60 — пример: RATE=500 task load:chain
+  load:chain:
+    desc: "Нагрузка: login → POST /orders (300 RPS×60s) → POST /orders/{uuid}/pay по факту ответа"
+    deps: [ vegeta:install ]
+    cmds:
+      - |
+        VEGETA="{{.VEGETA}}"
+        RATE="${RATE:-250}"
+        DURATION_S="${DURATION_S:-120}"
+        ORDER_URL="http://localhost:8080"
+        IAM_URL="http://localhost:8080"
+        RESULTS_DIR=$(mktemp -d)
+        trap 'rm -rf "$RESULTS_DIR"' EXIT
+
+        # Пользователь (409 «уже существует» — ок) и сессия для Bearer-заголовка
+        curl -sf -o /dev/null -X POST "$IAM_URL/api/v1/auth/register" \
+          -H 'Content-Type: application/json' \
+          -d '{"login":"loadtester","password":"loadtest-password"}' || true
+        SESSION=$(curl -sf -X POST "$IAM_URL/api/v1/auth/login" \
+          -H 'Content-Type: application/json' \
+          -d '{"login":"loadtester","password":"loadtest-password"}' | jq -r '.session_uuid')
+        if [ -z "$SESSION" ] || [ "$SESSION" = "null" ]; then
+          echo "❌ login в IAM не удался — стенд поднят? (task up-all-with-db)"
+          exit 1
+        fi
+        echo "🔑 session: $SESSION"
+
+        # Каждый заказ резервирует hull+engine в inventory — сиды держат ~50 заказов.
+        # Обновляем ТОЛЬКО uuid из ротации тел (~11 строк): полнотабличный UPDATE
+        # всех parts давал всплеск WAL/checkpoint/autovacuum и просадку latency
+        # в первые секунды атаки.
+        PART_UUIDS=""
+        for P in 440001 440002 440003 440004 440007 440008 440009 440010 440011 440012 440013; do
+          PART_UUIDS="$PART_UUIDS,'550e8400-e29b-41d4-a716-446655$P'"
+        done
+        docker exec postgres-inventory psql -U inventory-service-user -d inventory-service -q \
+          -c "UPDATE parts SET stock_quantity = 100000 WHERE uuid = ANY('{${PART_UUIDS#,}}'::uuid[])" \
+          && echo "📦 сток тестовых деталей увеличен до 100000" \
+          || echo "⚠️  сток не обновлён — create будет отдавать out-of-stock"
+
+        # Ротация тел по всем парам hull×engine: иначе все create
+        # сериализуются на FOR UPDATE по двум одним и тем же строкам parts,
+        # и стенд падает уже на ~200 RPS. 5 корпусов × 6 двигателей = 30 пар,
+        # на 300 RPS это ~50 запросов/с на строку движка — ниже предела.
+        : > "$RESULTS_DIR/create_targets"
+        i=0
+        for HULL in 440001 440002 440007 440012 440013; do
+          for ENGINE in 440003 440004 440008 440009 440010 440011; do
+            # hull-440001 (strength=50) не выдерживает engine-440004 (required_strength=70) — законный 409
+            [ "$HULL,$ENGINE" = "440001,440004" ] && continue
+            echo "{\"hull_uuid\":\"550e8400-e29b-41d4-a716-446655${HULL}\",\"engine_uuid\":\"550e8400-e29b-41d4-a716-446655${ENGINE}\"}" \
+              > "$RESULTS_DIR/create_$i.json"
+            printf 'POST %s/api/v1/orders\nAuthorization: Bearer %s\nContent-Type: application/json\n@%s\n\n' \
+              "$ORDER_URL" "$SESSION" "$RESULTS_DIR/create_$i.json" >> "$RESULTS_DIR/create_targets"
+            i=$((i+1))
+          done
+        done
+        echo '{"payment_method":"CARD"}' > "$RESULTS_DIR/pay.json"
+        mkfifo "$RESULTS_DIR/pay_targets"
+
+        # Pay-атака: lazy targeter читает цели из FIFO по мере поступления
+        $VEGETA attack -lazy -targets="$RESULTS_DIR/pay_targets" \
+            -rate="$RATE/s" -duration="$((DURATION_S + 10))s" \
+            -workers=1000 -max-workers=5000 -timeout=10s \
+            > "$RESULTS_DIR/pay.bin" &
+        PAY_PID=$!
+
+        # Create-атака → бинарный результат → NDJSON → order_uuid → pay-цели
+        $VEGETA attack -targets="$RESULTS_DIR/create_targets" \
+            -rate="$RATE/s" -duration="${DURATION_S}s" \
+            -workers=1000 -max-workers=5000 -timeout=10s | \
+          tee "$RESULTS_DIR/create.bin" | \
+          $VEGETA encode --to json | \
+          jq -rj --arg url "$ORDER_URL" --arg sess "$SESSION" --arg body "$RESULTS_DIR/pay.json" \
+            'select(.code >= 200 and .code < 300) | .body | @base64d | fromjson? |
+             "POST \($url)/api/v1/orders/\(.order_uuid)/pay\n",
+             "Authorization: Bearer \($sess)\n",
+             "Content-Type: application/json\n",
+             "@\($body)\n\n"' \
+            > "$RESULTS_DIR/pay_targets" || true
+
+        wait $PAY_PID
+
+        echo "===== CREATE ====="
+        $VEGETA report < "$RESULTS_DIR/create.bin"
+        echo "===== PAY ====="
+        $VEGETA report < "$RESULTS_DIR/pay.bin"

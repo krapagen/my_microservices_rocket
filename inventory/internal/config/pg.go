@@ -12,8 +12,11 @@ type pgConfig struct {
 }
 
 func (c *pgConfig) DSN() string {
+	// pool_max_conns: дефолт pgxpool — 4 соединения. Транзакции резервирования
+	// ждут row-lock на горячих строках держа соединение — при маленьком пуле
+	// ожидание блокирует даже чтения (ListParts) и запросы падают по deadline.
 	return fmt.Sprintf(
-		"host=%s port=%s dbname=%s user=%s password=%s sslmode=%s",
+		"host=%s port=%s dbname=%s user=%s password=%s sslmode=%s pool_max_conns=32",
 		c.Host, c.Port, c.Database, c.User, c.Password, c.SSLMode,
 	)
 }

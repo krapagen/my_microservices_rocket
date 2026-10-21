@@ -13,6 +13,8 @@ type PartRepository interface {
 	Get(ctx context.Context, partUUID uuid.UUID) (model.Part, error)
 	List(ctx context.Context, filter input.PartFilter) ([]model.Part, error)
 	ListForUpdate(ctx context.Context, filter input.PartFilter) ([]model.Part, error)
+	ReserveAtomic(ctx context.Context, uuids []uuid.UUID) error
+	ReleaseAtomic(ctx context.Context, uuids []uuid.UUID) error
 	UpdateReservedBatch(ctx context.Context, parts []model.Part) error
 	Commit(ctx context.Context, filter input.CommitFilter) error
 }

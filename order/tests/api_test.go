@@ -656,7 +656,7 @@ func TestInventory_ListParts_All(t *testing.T) {
 		PartType: inventoryv1.PartType_PART_TYPE_UNSPECIFIED,
 	})
 	require.NoError(t, err)
-	assert.Len(t, resp.GetParts(), 7)
+	assert.Len(t, resp.GetParts(), 13)
 }
 
 func TestInventory_ListParts_ByType_Hull(t *testing.T) {
@@ -664,7 +664,7 @@ func TestInventory_ListParts_ByType_Hull(t *testing.T) {
 		PartType: inventoryv1.PartType_PART_TYPE_HULL,
 	})
 	require.NoError(t, err)
-	assert.Len(t, resp.GetParts(), 3) // Алюминиевый, Титановый, Плазменный (stock=0)
+	assert.Len(t, resp.GetParts(), 5) // Алюминиевый, Титановый, Плазменный (stock=0), Композитный, Усиленный
 
 	for _, part := range resp.GetParts() {
 		assert.Equal(t, inventoryv1.PartType_PART_TYPE_HULL, part.GetPartType())
@@ -676,7 +676,7 @@ func TestInventory_ListParts_ByType_Engine(t *testing.T) {
 		PartType: inventoryv1.PartType_PART_TYPE_ENGINE,
 	})
 	require.NoError(t, err)
-	assert.Len(t, resp.GetParts(), 2)
+	assert.Len(t, resp.GetParts(), 6)
 
 	for _, part := range resp.GetParts() {
 		assert.Equal(t, inventoryv1.PartType_PART_TYPE_ENGINE, part.GetPartType())
@@ -826,7 +826,7 @@ func TestInventory_ListParts_ByUuids_EmptyList(t *testing.T) {
 		Uuids: []string{},
 	})
 	require.NoError(t, err)
-	assert.Len(t, resp.GetParts(), 7)
+	assert.Len(t, resp.GetParts(), 13)
 }
 
 // Тесты PaymentService (gRPC)

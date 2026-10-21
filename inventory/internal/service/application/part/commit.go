@@ -13,38 +13,16 @@ func (s *service) Commit(ctx context.Context, filter input.CommitFilter) error {
 	op := "Функция inventory/internal/service/application/part/Commit"
 	log := slog.With("op", op)
 
-	err := s.txManager.Do(ctx, func(ctx context.Context) error {
-		parts, err := s.partRepository.ListForUpdate(ctx, input.PartFilter{UUIDs: filter.UUIDs})
-		if err != nil {
-			log.ErrorContext(ctx, "ошибка получения деталей для обновления", "error", err)
-			return err
+	// Репозиторный UPDATE атомарен: WHERE stock>0 AND reserved>0 + сверка
+	// RowsAffected заменяют SELECT FOR UPDATE pre-check — лок на время UPDATE.
+	if err := s.partRepository.Commit(ctx, filter); err != nil {
+		if errors.Is(err, errs.ErrCommitParts) {
+			log.ErrorContext(ctx, "не удалось списать все детали", "expected", len(filter.UUIDs))
+			return errs.ErrCommitParts
 		}
-		log.InfoContext(ctx, "успешно прочитаны детали для обновления", "count", len(parts))
-		for _, p := range parts {
-			if p.StockQuantity() <= 0 {
-				log.ErrorContext(ctx, "деталь отсутствует на складе:", "uuid", p.UUID())
-				return errs.ErrCommitParts
-			}
-			if p.Reserved() <= 0 {
-				log.ErrorContext(ctx, "деталь не зарезервирована:", "uuid", p.UUID())
-				return errs.ErrCommitParts
-			}
-		}
-		err = s.partRepository.Commit(ctx, filter)
-		if err != nil {
-			if errors.Is(err, errs.ErrCommitParts) {
-				log.ErrorContext(ctx, "не удалось обновить все детали", "expected", len(filter.UUIDs), "actual", len(parts))
-				return errs.ErrCommitParts
-			}
-			log.ErrorContext(ctx, "ошибка при списании деталей", "error", err)
-			return err
-		}
-		log.InfoContext(ctx, "успешно списаны детали", "count", len(parts))
-		return nil
-	})
-	if err != nil {
-		log.ErrorContext(ctx, "ошибка при выполнении транзакции", "error", err)
+		log.ErrorContext(ctx, "ошибка при списании деталей", "error", err)
 		return err
 	}
+	log.InfoContext(ctx, "успешно списаны детали", "count", len(filter.UUIDs))
 	return nil
 }

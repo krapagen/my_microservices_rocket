@@ -311,6 +311,110 @@ func (_c *PartRepository_ListForUpdate_Call) RunAndReturn(run func(ctx context.C
 	return _c
 }
 
+// ReserveAtomic provides a mock function for the type PartRepository
+func (_mock *PartRepository) ReserveAtomic(ctx context.Context, uuids []uuid.UUID) error {
+	ret := _mock.Called(ctx, uuids)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ReserveAtomic")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, []uuid.UUID) error); ok {
+		r0 = returnFunc(ctx, uuids)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// PartRepository_ReserveAtomic_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ReserveAtomic'
+type PartRepository_ReserveAtomic_Call struct {
+	*mock.Call
+}
+
+// ReserveAtomic is a helper method to define mock.On call
+//   - ctx context.Context
+//   - uuids []uuid.UUID
+func (_e *PartRepository_Expecter) ReserveAtomic(ctx any, uuids any) *PartRepository_ReserveAtomic_Call {
+	return &PartRepository_ReserveAtomic_Call{Call: _e.mock.On("ReserveAtomic", ctx, uuids)}
+}
+
+func (_c *PartRepository_ReserveAtomic_Call) Run(run func(ctx context.Context, uuids []uuid.UUID)) *PartRepository_ReserveAtomic_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 []uuid.UUID
+		if args[1] != nil {
+			arg1 = args[1].([]uuid.UUID)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *PartRepository_ReserveAtomic_Call) Return(err error) *PartRepository_ReserveAtomic_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+// ReleaseAtomic provides a mock function for the type PartRepository
+func (_mock *PartRepository) ReleaseAtomic(ctx context.Context, uuids []uuid.UUID) error {
+	ret := _mock.Called(ctx, uuids)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ReleaseAtomic")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, []uuid.UUID) error); ok {
+		r0 = returnFunc(ctx, uuids)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// PartRepository_ReleaseAtomic_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ReleaseAtomic'
+type PartRepository_ReleaseAtomic_Call struct {
+	*mock.Call
+}
+
+// ReleaseAtomic is a helper method to define mock.On call
+//   - ctx context.Context
+//   - uuids []uuid.UUID
+func (_e *PartRepository_Expecter) ReleaseAtomic(ctx any, uuids any) *PartRepository_ReleaseAtomic_Call {
+	return &PartRepository_ReleaseAtomic_Call{Call: _e.mock.On("ReleaseAtomic", ctx, uuids)}
+}
+
+func (_c *PartRepository_ReleaseAtomic_Call) Run(run func(ctx context.Context, uuids []uuid.UUID)) *PartRepository_ReleaseAtomic_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 []uuid.UUID
+		if args[1] != nil {
+			arg1 = args[1].([]uuid.UUID)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *PartRepository_ReleaseAtomic_Call) Return(err error) *PartRepository_ReleaseAtomic_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
 // UpdateReservedBatch provides a mock function for the type PartRepository
 func (_mock *PartRepository) UpdateReservedBatch(ctx context.Context, parts []model.Part) error {
 	ret := _mock.Called(ctx, parts)

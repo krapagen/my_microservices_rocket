@@ -7,8 +7,8 @@ http:
   port: "8081"
 
 rate_limit:
-  rate: 100
-  burst: 200
+  rate: 200
+  burst: 50
 
 postgres:
   host: "localhost"
