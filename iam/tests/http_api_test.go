@@ -59,7 +59,7 @@ func TestHTTP_RegisterLoginGetLogout_HappyPath(t *testing.T) {
 
 	// GetUser с валидной сессией — 200
 	userRes, err := httpClient.GetUser(ctx, iamv1.GetUserParams{
-		UserUUID:      userUUID,
+		UserUUID:     userUUID,
 		XSessionUUID: sessionUUID,
 	})
 	require.NoError(t, err)
@@ -79,7 +79,7 @@ func TestHTTP_RegisterLoginGetLogout_HappyPath(t *testing.T) {
 
 	// GetUser после logout — 401
 	userRes, err = httpClient.GetUser(ctx, iamv1.GetUserParams{
-		UserUUID:      userUUID,
+		UserUUID:     userUUID,
 		XSessionUUID: sessionUUID,
 	})
 	require.NoError(t, err)
@@ -136,7 +136,7 @@ func TestHTTP_GetUser_WithoutSession(t *testing.T) {
 	ctx := context.Background()
 
 	res, err := httpClient.GetUser(ctx, iamv1.GetUserParams{
-		UserUUID:      uuid.New(),
+		UserUUID:     uuid.New(),
 		XSessionUUID: uuid.New(), // несуществующая сессия
 	})
 	require.NoError(t, err)
@@ -154,7 +154,7 @@ func TestHTTP_GetUser_NotFound(t *testing.T) {
 	sessionUUID := loginHTTP(t, login, "password123")
 
 	res, err := httpClient.GetUser(ctx, iamv1.GetUserParams{
-		UserUUID:      uuid.New(), // несуществующий пользователь
+		UserUUID:     uuid.New(), // несуществующий пользователь
 		XSessionUUID: sessionUUID,
 	})
 	require.NoError(t, err)

@@ -1,5 +1,5 @@
 logger:
-  level: "info"
+  level: "warn"
 
 otel:
   service_name: "order-service"
@@ -39,5 +39,5 @@ ship_assembled_consumer:
 
 rate_limit:
   redis_address: "redis-ratelimit:6379"
-  rate: 100
-  burst: 200
+  rate: 200
+  burst: 50

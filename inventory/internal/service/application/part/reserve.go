@@ -2,17 +2,14 @@ package part
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 
 	"github.com/google/uuid"
-
-	errs "github.com/krapagen/my_microservices_rocket/inventory/internal/errors"
-	"github.com/krapagen/my_microservices_rocket/inventory/internal/model"
-	"github.com/krapagen/my_microservices_rocket/inventory/internal/service/input"
 )
 
 // Reserve увеличивает зарезервированное количество деталей на 1 для каждого указанного UUID.
+// Один атомарный UPDATE в БД — без SELECT FOR UPDATE и транзакции,
+// иначе конкурентные запросы сериализуются на строках parts.
 func (s *service) Reserve(ctx context.Context, uuids []uuid.UUID) error {
 	op := "Функция inventory/internal/service/application/part/Reserve"
 	log := slog.With("op", op)
@@ -20,38 +17,10 @@ func (s *service) Reserve(ctx context.Context, uuids []uuid.UUID) error {
 		log.InfoContext(ctx, "пустой список UUID")
 		return nil
 	}
-	err := s.txManager.Do(ctx, func(ctx context.Context) error {
-		parts, err := s.partRepository.ListForUpdate(ctx, input.PartFilter{UUIDs: uuids})
-		if err != nil {
-			log.ErrorContext(ctx, "ошибка получения деталей", "error", err)
-			return err
-		}
-		log.InfoContext(ctx, "успешно прочитаны детали", "count", len(parts))
-		updated := make([]model.Part, 0, len(parts))
-		for _, p := range parts {
-			if p.Reserved() >= p.StockQuantity() {
-				log.ErrorContext(ctx, "деталь отсутствует на складе", "uuid", p.UUID())
-				return fmt.Errorf("деталь %s отсутствует на складе: %w", p.UUID(), errs.ErrOutOfStock)
-			}
-
-			updated = append(updated, model.RestorePart(
-				p.UUID(),
-				p.Name(),
-				p.Description(),
-				p.PartType(),
-				p.Price(),
-				p.StockQuantity(),
-				p.Reserved()+1,
-				p.Properties(),
-				p.CreatedAt(),
-			))
-		}
-		log.InfoContext(ctx, "успешно подготовлены детали для обновления зарезервированного количества", "count", len(updated))
-		return s.partRepository.UpdateReservedBatch(ctx, updated)
-	})
-	if err != nil {
-		log.ErrorContext(ctx, "ошибка при выполнении транзакции", "error", err)
+	if err := s.partRepository.ReserveAtomic(ctx, uuids); err != nil {
+		log.ErrorContext(ctx, "ошибка резервирования деталей", "error", err)
 		return err
 	}
+	log.InfoContext(ctx, "детали зарезервированы", "count", len(uuids))
 	return nil
 }

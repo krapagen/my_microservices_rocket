@@ -128,10 +128,12 @@ func (d *diContainer) OrderRepository(ctx context.Context) orderService.OrderRep
 func (d *diContainer) InventoryClient() orderService.InventoryClient {
 	if d.inventoryClient == nil {
 		conn, err := grpc.NewClient(
-			config.AppConfig().InventoryClient.Address,
+			"dns:///"+config.AppConfig().InventoryClient.Address,
 			grpc.WithTransportCredentials(insecure.NewCredentials()),
 			grpc.WithStatsHandler(otelgrpc.NewClientHandler()),
 			grpc.WithUnaryInterceptor(interceptor.SessionForwarder()),
+			// round_robin: балансировка по всем репликам inventory вместо pick_first
+			grpc.WithDefaultServiceConfig(`{"loadBalancingConfig":[{"round_robin":{}}]}`),
 		)
 		if err != nil {
 			slog.Error("не удалось подключиться к InventoryService", "error", err)

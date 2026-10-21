@@ -8,20 +8,6 @@ import (
 	"github.com/krapagen/my_microservices_rocket/inventory/internal/model"
 )
 
-func newFakePart(partType model.PartType) model.Part {
-	return model.RestorePart(
-		uuid.New(),
-		"Fake Part",
-		"description",
-		partType,
-		1000,
-		10,
-		0,
-		model.PartProperties{},
-		time.Now().UTC(),
-	)
-}
-
 func newFakeHull(strength int) model.Part {
 	props, _ := model.NewHullProperties(strength)
 	return model.RestorePart(

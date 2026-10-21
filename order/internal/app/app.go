@@ -57,9 +57,11 @@ func New(ctx context.Context) *App {
 }
 
 func initGRPCClient(address, service string) *grpc.ClientConn {
-	// Создать gRPC соединение
+	// Создать gRPC соединение.
+	// dns:/// + round_robin: при репликах сервиса запросы балансируются по всем
+	// инстансам, а не прибиваются к первому адресу из DNS (дефолт pick_first).
 	conn, err := grpc.NewClient(
-		address,
+		"dns:///"+address,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithStatsHandler(otelgrpc.NewClientHandler()),
 		grpc.WithKeepaliveParams(keepalive.ClientParameters{
@@ -67,6 +69,7 @@ func initGRPCClient(address, service string) *grpc.ClientConn {
 			Timeout:             grpcKeepaliveTimeout,
 			PermitWithoutStream: true,
 		}),
+		grpc.WithDefaultServiceConfig(`{"loadBalancingConfig":[{"round_robin":{}}]}`),
 	)
 	if err != nil {
 		slog.Error("не удалось подключиться к "+service, "error", err)

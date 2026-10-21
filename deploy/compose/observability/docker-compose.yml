@@ -92,6 +92,9 @@ services:
       - discovery.type=single-node
       - xpack.security.enabled=false
       - cluster.name=observability
+      # Малая куча для dev-стенда: без неё ES 8.x берёт ~512M+ и контейнер
+      # OOM-килится (exit 137) — вместе с ним падает приём метрик в коллекторе.
+      - ES_JAVA_OPTS=-Xms256m -Xmx256m
     volumes:
       - es_data:/usr/share/elasticsearch/data
     ports:

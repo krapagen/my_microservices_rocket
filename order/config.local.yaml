@@ -39,5 +39,5 @@ otel:
 
 rate_limit:
   redis_address: "localhost:6380"
-  rate: 100
-  burst: 200
+  rate: 200
+  burst: 50

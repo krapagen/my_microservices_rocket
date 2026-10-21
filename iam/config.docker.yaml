@@ -7,8 +7,8 @@ http:
   port: "8081"
 
 rate_limit:
-  rate: 100
-  burst: 200
+  rate: 200
+  burst: 50
 
 pg:
   host: "postgres-iam"
@@ -29,7 +29,7 @@ session:
   ttl: 24h
 
 logger:
-  level: "info"
+  level: "warn"
 
 otel:
   service_name: "iam-service"

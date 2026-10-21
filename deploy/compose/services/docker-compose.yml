@@ -53,8 +53,8 @@ services:
       args:
         GO_IMAGE: ${GO_IMAGE}
         ALPINE_IMAGE: ${ALPINE_IMAGE}
-    ports:
-      - "50051:50051"
+    # Хост-порт НЕ пробрасываем: при --scale реплики конфликтовали бы за 50051.
+    # Сервисы общаются через Docker DNS (inventory-service:50051).
     volumes:
       - ../../../inventory/config.docker.yaml:/config.yaml
     environment:
@@ -87,9 +87,8 @@ services:
       args:
         GO_IMAGE: ${GO_IMAGE}
         ALPINE_IMAGE: ${ALPINE_IMAGE}
-    ports:
-      - "50053:50053"
-      - "8081:8081"
+    # Хост-порты НЕ пробрасываем: при --scale реплики конфликтовали бы за 8081/50053.
+    # HTTP (login/users) доступен через nginx /api/v1/auth/, gRPC — по DNS iam-service:50053.
     volumes:
       - ../../../iam/config.docker.yaml:/config.yaml
     environment:

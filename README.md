@@ -50,6 +50,24 @@ flowchart TB
     assembly -->|ship-assembled| kafka
     kafka -->|ship-assembled| order
 
+    subgraph Observability
+        direction TB
+        otel[OTel Collector :4317]:::edge
+        jaeger[(Jaeger :16686)]:::db
+        prom[(Prometheus :9090)]:::db
+        es[(Elasticsearch :9200<br/>otel-logs)]:::db
+        grafana[Grafana :3000]:::edge
+        kibana[Kibana :5601]:::edge
+
+        otel --> jaeger
+        otel --> prom
+        otel --> es
+        prom --> grafana
+        es --> kibana
+    end
+
+    order & inventory & payment & assembly & iam -.-> otel
+
     classDef ext fill:#59636e,stroke:#9198a1,color:#fff
     classDef edge fill:#ab7df8,stroke:#8250df,color:#fff
     classDef svc fill:#1f6feb,stroke:#4493f8,color:#fff
@@ -89,7 +107,7 @@ sequenceDiagram
     O->>+I: ReserveParts(partUUIDs)<br/>+ metadata session-uuid
     I->>+IAM: Whoami(session_uuid)<br/>Auth interceptor
     IAM-->>-I: user
-    I->>I: SELECT FOR UPDATE · stock--
+    I->>I: UPDATE parts · CTE + ordered FOR UPDATE · reserved++
     I-->>-O: OK (parts reserved)
     O->>PG: INSERT order, status=PENDING_PAYMENT
     O-->>-N: 201 Created (order_uuid)
@@ -402,12 +420,13 @@ Kafka UI is available at **http://localhost:8088** (default port from `core.env`
 - **`tracing.InitTracer`** в `app.go` каждого сервиса — TracerProvider + W3C TraceContext propagator для сквозных трейсов
 - **`otelgrpc`** stats handlers на gRPC-серверах и клиентах — автоматические span'ы на каждый вызов
 - **`otelhttp`** middleware на HTTP-сервере Order — спаны + метрики `http_server_request_duration_seconds`
+- **`otelogen`** — нативные per-operation метрики ogen-сервера: `ogen_server_request_count_total` и `ogen_server_duration_milliseconds` с лейблами `oas_operation` (`createOrder`/`payOrder`/…), `http_route` (path template без uuid) и `http_response_status_code`
 - **Бизнес-метрики OrderService**: `orders_created_total`, `orders_paid_total`, `orders_revenue_total` (сумма в копейках)
 - **`rate_limit_requests_total`** — решения лимитера (`result`/`path`/`instance`), считает и отказы 429, которые до `otelhttp` не доходят
 - **`service.instance.id`** = hostname в resource метрик — каждая реплика пишет свою серию (иначе реплики сливаются в одну и `rate()`/`irate()` врут)
 - **Кастомные спаны** `order.Create` / `order.Pay` с атрибутами заказа и запиcью ошибок
 - **Логи в ECS-формате** с `trace.id`/`span.id` — корреляция лог ↔ трейс в Kibana/Jaeger
-- **Дашборды Grafana** (provisioned из `deploy/grafana/dashboards`): Order Service и Rate Limiter (`http://localhost:3000/d/rate-limiter` — всего/пропущено/отклонено в req/s)
+- **Дашборды Grafana** (provisioned из `deploy/grafana/dashboards`): Order Service — общий блок + секции `Endpoint · Create` и `Endpoint · Pay` (RPS по статус-коду, p50/p95/p99, RPS по инстансам на `ogen_server_*` метриках) и Rate Limiter (`http://localhost:3000/d/rate-limiter` — всего/пропущено/отклонено в req/s)
 
 > Для работы логов нужен data stream `otel-logs` — его создаёт one-shot контейнер `es-init` (запускается автоматически через `task up-core`).
 
@@ -416,11 +435,14 @@ Kafka UI is available at **http://localhost:8088** (default port from `core.env`
 HTTP API Order и IAM защищены распределённым rate limiter'ом (`platform/pkg/ratelimit`, Redis + `redis_rate`, алгоритм GCRA):
 
 - **Лимит общий для всех реплик** — состояние в `redis-ratelimit`, ключ — request path
-- **`rate: 100` req/s, `burst: 200`** — в `order/config.*.yaml` и `iam/config.*.yaml` (`rate_limit:`)
-- Превышение → `429 Too Many Requests` (до `otelhttp`/auth — поэтому 429 не попадает в `http_server_*`)
+- **`rate: 200` req/s, `burst: 50`** — в `order/config.*.yaml` и `iam/config.*.yaml` (`rate_limit:`)
+- Превышение → `429 Too Many Requests` (до `otelhttp`/auth — поэтому 429 не попадает в `http_server_*`/`ogen_server_*`, только в `rate_limit_requests_total`)
 - **Fail-open**: недоступный Redis → пропуск + `result="fail_open"` в метрике
 
-Нагрузочный тест: `task load:http` (vegeta, 50 → 500 RPS за 2.5 мин) — линии «пропущено ≈100/с / отклонено» на дашборде Rate Limiter.
+Нагрузочные тесты:
+
+- **`task load:http`** (vegeta, 50 → 500 RPS за 2.5 мин) — линии «пропущено ≈200/с / отклонено» на дашборде Rate Limiter.
+- **`task load:chain`** — полный цепочечный прогон: login → `POST /orders` (`RATE`×`DURATION_S`, по умолчанию 250×120s) → `POST /orders/{uuid}/pay` по мере успешных create (FIFO из ответов, без слепых pay по несуществующим uuid). Тела create ротируются по ~30 парам hull×engine — иначе все запросы сериализуются на `FOR UPDATE` по двум строкам parts.
 
 ## 📦 Go Workspace
 

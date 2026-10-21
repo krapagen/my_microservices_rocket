@@ -3,7 +3,7 @@ grpc:
   port: "50052"
 
 logger:
-  level: "info"
+  level: "warn"
 
 otel:
   service_name: "payment-service"
